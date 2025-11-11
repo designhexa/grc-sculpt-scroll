@@ -6,41 +6,32 @@ interface AnimatedProductCardProps {
 }
 
 export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps) => {
-  // Section transitions: 0-0.25, 0.25-0.5, 0.5-0.75, 0.75-1.0
-  
-  // X position (horizontal movement)
+  // Smooth X position - moving to specific puzzle slots
   const x = useTransform(
     scrollProgress,
-    [0, 0.25, 0.5, 0.75, 1.0],
-    ["0%", "-30%", "30%", "0%", "0%"]
+    [0, 0.2, 0.25, 0.45, 0.5, 0.7, 0.75, 1.0],
+    ["0%", "0%", "-50%", "-50%", "50%", "50%", "0%", "0%"]
   );
 
-  // Y position (vertical movement)
+  // Smooth Y position - entering from bottom, settling at each section
   const y = useTransform(
     scrollProgress,
-    [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0],
-    ["100%", "0%", "15%", "25%", "35%", "40%", "100%"]
+    [0, 0.08, 0.2, 0.25, 0.45, 0.5, 0.7, 0.75, 0.9, 1.0],
+    ["80%", "0%", "0%", "0%", "0%", "0%", "0%", "0%", "0%", "80%"]
   );
 
-  // Scale
+  // Subtle scale - only slight zoom on section 3
   const scale = useTransform(
     scrollProgress,
-    [0, 0.1, 0.5, 0.6, 0.75, 0.9],
-    [0.8, 1, 1, 1.1, 1.1, 1]
+    [0, 0.08, 0.5, 0.55, 0.7, 0.75],
+    [0.85, 1, 1, 1.08, 1.08, 1]
   );
 
-  // Opacity
+  // Smooth opacity
   const opacity = useTransform(
     scrollProgress,
-    [0, 0.05, 0.1, 0.85, 0.95, 1.0],
-    [0, 0.5, 1, 1, 0.5, 0]
-  );
-
-  // Rotation for added dynamism
-  const rotate = useTransform(
-    scrollProgress,
-    [0, 0.25, 0.5, 0.75, 1.0],
-    [0, -2, 2, 0, 0]
+    [0, 0.05, 0.08, 0.9, 0.95, 1.0],
+    [0, 0.3, 1, 1, 0.3, 0]
   );
 
   return (
@@ -51,22 +42,20 @@ export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps
         y,
         scale,
         opacity,
-        rotate,
+      }}
+      transition={{
+        type: "spring",
+        stiffness: 80,
+        damping: 30,
+        mass: 0.8,
       }}
     >
-      <motion.div
-        className="overflow-hidden rounded-2xl bg-white shadow-2xl"
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      >
+      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="aspect-[4/3] overflow-hidden">
-          <motion.img
+          <img
             src={ornamentImage}
             alt="Premium GRC Wall Ornament"
             className="h-full w-full object-cover"
-            style={{
-              scale: useTransform(scrollProgress, [0.5, 0.6], [1, 1.1]),
-            }}
           />
         </div>
         <div className="bg-gradient-to-br from-white to-neutral-50 p-6">
@@ -77,7 +66,7 @@ export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps
             Handcrafted GRC wall ornament with classical elegance
           </p>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };

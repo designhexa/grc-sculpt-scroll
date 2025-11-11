@@ -50,12 +50,12 @@ const Index = () => {
             startProgress={0}
             endProgress={0.25}
             direction="up"
-            className="mb-8 text-center"
+            className="mb-12 text-center"
           >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
             >
               <h1 className="mb-6 bg-gradient-to-r from-section1-text to-neutral-600 bg-clip-text text-6xl font-bold tracking-tight text-transparent md:text-8xl">
                 Elevate Your Space
@@ -66,11 +66,17 @@ const Index = () => {
             </motion.div>
           </AnimatedText>
 
-          <div className="mt-16 flex justify-center">
-            <PuzzleSlot
-              isActive={useTransform(scrollYProgress, (p) => p < 0.15).get()}
-              accentColor="hsl(38 65% 55%)"
-            />
+          <div className="flex justify-center">
+            <motion.div
+              style={{
+                opacity: useTransform(scrollYProgress, [0, 0.08, 0.2, 0.25], [0.3, 1, 1, 0]),
+              }}
+            >
+              <PuzzleSlot
+                isActive={true}
+                accentColor="hsl(38 65% 55%)"
+              />
+            </motion.div>
           </div>
         </div>
       </section>
@@ -80,13 +86,16 @@ const Index = () => {
         <div className="container relative z-10 mx-auto">
           <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
             <div className="order-2 flex justify-center md:order-1">
-              <PuzzleSlot
-                isActive={useTransform(
-                  scrollYProgress,
-                  (p) => p >= 0.25 && p < 0.5
-                ).get()}
-                accentColor="hsl(217 91% 60%)"
-              />
+              <motion.div
+                style={{
+                  opacity: useTransform(scrollYProgress, [0.2, 0.25, 0.45, 0.5], [0, 1, 1, 0]),
+                }}
+              >
+                <PuzzleSlot
+                  isActive={true}
+                  accentColor="hsl(217 91% 60%)"
+                />
+              </motion.div>
             </div>
 
             <AnimatedText
@@ -190,13 +199,16 @@ const Index = () => {
             </AnimatedText>
 
             <div className="flex justify-center">
-              <PuzzleSlot
-                isActive={useTransform(
-                  scrollYProgress,
-                  (p) => p >= 0.5 && p < 0.75
-                ).get()}
-                accentColor="hsl(280 60% 60%)"
-              />
+              <motion.div
+                style={{
+                  opacity: useTransform(scrollYProgress, [0.45, 0.5, 0.7, 0.75], [0, 1, 1, 0]),
+                }}
+              >
+                <PuzzleSlot
+                  isActive={true}
+                  accentColor="hsl(280 60% 60%)"
+                />
+              </motion.div>
             </div>
           </div>
         </div>
@@ -217,7 +229,7 @@ const Index = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 whileInView={{ scale: 1, opacity: 1 }}
                 viewport={{ once: false }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
               >
                 <h2 className="mb-6 text-6xl font-bold text-section4-text md:text-7xl">
                   Join the Revolution
@@ -229,17 +241,23 @@ const Index = () => {
               </motion.div>
 
               <div className="flex justify-center">
-                <PuzzleSlot
-                  isActive={useTransform(scrollYProgress, (p) => p >= 0.75).get()}
-                  accentColor="hsl(160 70% 55%)"
-                />
+                <motion.div
+                  style={{
+                    opacity: useTransform(scrollYProgress, [0.7, 0.75, 0.9, 1.0], [0, 1, 1, 0]),
+                  }}
+                >
+                  <PuzzleSlot
+                    isActive={true}
+                    accentColor="hsl(160 70% 55%)"
+                  />
+                </motion.div>
               </div>
 
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: false }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
                 className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
               >
                 <Button
