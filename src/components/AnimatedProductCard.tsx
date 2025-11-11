@@ -1,85 +1,83 @@
-import { motion } from "framer-motion";
+import { motion, useTransform, MotionValue } from "framer-motion";
 import ornamentImage from "@/assets/grc-ornament.jpg";
 
 interface AnimatedProductCardProps {
-  scrollProgress: number;
+  scrollProgress: MotionValue<number>;
 }
 
 export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps) => {
-  // Calculate position and scale based on scroll progress
-  const getCardStyle = () => {
-    if (scrollProgress < 0.25) {
-      // Section 1: Center
-      return {
-        x: "0%",
-        y: `${Math.max(0, 100 - scrollProgress * 400)}%`,
-        scale: 1,
-        opacity: Math.min(1, scrollProgress * 4),
-      };
-    } else if (scrollProgress < 0.5) {
-      // Section 2: Move to bottom left
-      const localProgress = (scrollProgress - 0.25) / 0.25;
-      return {
-        x: `${-30 * localProgress}%`,
-        y: `${20 * localProgress}%`,
-        scale: 1,
-        opacity: 1,
-      };
-    } else if (scrollProgress < 0.75) {
-      // Section 3: Move to bottom right with zoom
-      const localProgress = (scrollProgress - 0.5) / 0.25;
-      return {
-        x: `${-30 + 60 * localProgress}%`,
-        y: `${20 + 10 * localProgress}%`,
-        scale: 1 + 0.15 * localProgress,
-        opacity: 1,
-      };
-    } else {
-      // Section 4: Center bottom and fade out
-      const localProgress = (scrollProgress - 0.75) / 0.25;
-      return {
-        x: `${30 - 30 * localProgress}%`,
-        y: `${30 + 10 * localProgress}%`,
-        scale: 1.15,
-        opacity: Math.max(0, 1 - localProgress * 1.5),
-      };
-    }
-  };
+  // Section transitions: 0-0.25, 0.25-0.5, 0.5-0.75, 0.75-1.0
+  
+  // X position (horizontal movement)
+  const x = useTransform(
+    scrollProgress,
+    [0, 0.25, 0.5, 0.75, 1.0],
+    ["0%", "-30%", "30%", "0%", "0%"]
+  );
 
-  const cardStyle = getCardStyle();
+  // Y position (vertical movement)
+  const y = useTransform(
+    scrollProgress,
+    [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0],
+    ["100%", "0%", "15%", "25%", "35%", "40%", "100%"]
+  );
+
+  // Scale
+  const scale = useTransform(
+    scrollProgress,
+    [0, 0.1, 0.5, 0.6, 0.75, 0.9],
+    [0.8, 1, 1, 1.1, 1.1, 1]
+  );
+
+  // Opacity
+  const opacity = useTransform(
+    scrollProgress,
+    [0, 0.05, 0.1, 0.85, 0.95, 1.0],
+    [0, 0.5, 1, 1, 0.5, 0]
+  );
+
+  // Rotation for added dynamism
+  const rotate = useTransform(
+    scrollProgress,
+    [0, 0.25, 0.5, 0.75, 1.0],
+    [0, -2, 2, 0, 0]
+  );
 
   return (
     <motion.div
-      className="fixed left-1/2 top-1/2 z-10 w-[500px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2"
+      className="pointer-events-none fixed left-1/2 top-1/2 z-50 w-[500px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2"
       style={{
-        x: cardStyle.x,
-        y: cardStyle.y,
-        scale: cardStyle.scale,
-        opacity: cardStyle.opacity,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 50,
-        damping: 20,
+        x,
+        y,
+        scale,
+        opacity,
+        rotate,
       }}
     >
-      <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-elegant)]">
+      <motion.div
+        className="overflow-hidden rounded-2xl bg-white shadow-2xl"
+        whileHover={{ scale: 1.02 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
         <div className="aspect-[4/3] overflow-hidden">
-          <img
+          <motion.img
             src={ornamentImage}
             alt="Premium GRC Wall Ornament"
             className="h-full w-full object-cover"
+            style={{
+              scale: useTransform(scrollProgress, [0.5, 0.6], [1, 1.1]),
+            }}
           />
         </div>
-        <div className="p-6">
-          <h3 className="mb-2 text-2xl font-semibold text-foreground">
+        <div className="bg-gradient-to-br from-white to-neutral-50 p-6">
+          <h3 className="mb-2 bg-gradient-to-r from-neutral-800 to-neutral-600 bg-clip-text text-2xl font-bold text-transparent">
             Venetian Collection
           </h3>
-          <p className="text-muted-foreground">
+          <p className="text-neutral-600">
             Handcrafted GRC wall ornament with classical elegance
           </p>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 };
