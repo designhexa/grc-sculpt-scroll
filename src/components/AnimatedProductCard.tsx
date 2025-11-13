@@ -6,32 +6,32 @@ interface AnimatedProductCardProps {
 }
 
 export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps) => {
-  // Smooth X position - moving to specific puzzle slots
+  // Precise X positioning to match puzzle slots exactly
   const x = useTransform(
     scrollProgress,
-    [0, 0.2, 0.25, 0.45, 0.5, 0.7, 0.75, 1.0],
-    ["0%", "0%", "-50%", "-50%", "50%", "50%", "0%", "0%"]
+    [0, 0.08, 0.2, 0.25, 0.3, 0.45, 0.5, 0.55, 0.7, 0.75, 0.8, 0.9, 1.0],
+    ["0%", "0%", "0%", "0%", "-42%", "-42%", "-42%", "42%", "42%", "42%", "0%", "0%", "0%"]
   );
 
-  // Smooth Y position - entering from bottom, settling at each section
+  // Precise Y positioning - smooth entrance and perfect alignment
   const y = useTransform(
     scrollProgress,
-    [0, 0.08, 0.2, 0.25, 0.45, 0.5, 0.7, 0.75, 0.9, 1.0],
-    ["80%", "0%", "0%", "0%", "0%", "0%", "0%", "0%", "0%", "80%"]
+    [0, 0.05, 0.08, 0.2, 0.88, 0.92, 1.0],
+    ["100%", "50%", "0%", "0%", "0%", "50%", "100%"]
   );
 
-  // Subtle scale - only slight zoom on section 3
+  // Refined scale for smooth emphasis
   const scale = useTransform(
     scrollProgress,
-    [0, 0.08, 0.5, 0.55, 0.7, 0.75],
-    [0.85, 1, 1, 1.08, 1.08, 1]
+    [0, 0.05, 0.08, 0.5, 0.52, 0.58, 0.6, 0.88],
+    [0.8, 0.9, 1, 1, 1.02, 1.12, 1.02, 1]
   );
 
-  // Smooth opacity
+  // Enhanced opacity with smoother transitions
   const opacity = useTransform(
     scrollProgress,
-    [0, 0.05, 0.08, 0.9, 0.95, 1.0],
-    [0, 0.3, 1, 1, 0.3, 0]
+    [0, 0.03, 0.08, 0.88, 0.92, 1.0],
+    [0, 0.5, 1, 1, 0.5, 0]
   );
 
   return (
@@ -45,9 +45,9 @@ export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps
       }}
       transition={{
         type: "spring",
-        stiffness: 80,
-        damping: 30,
-        mass: 0.8,
+        stiffness: 60,
+        damping: 35,
+        mass: 1,
       }}
     >
       <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
