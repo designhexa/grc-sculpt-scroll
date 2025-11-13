@@ -17,25 +17,27 @@ export const AnimatedText = ({
   direction = "up",
   className = "",
 }: AnimatedTextProps) => {
-  // Enhanced opacity with smoother transitions
+  // Smooth opacity transitions
   const opacity = useTransform(
     scrollProgress,
-    [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05, endProgress + 0.15],
-    [0, 0, 1, 1, 0, 0]
-  );
-
-  // Enhanced blur effect for depth
-  const blur = useTransform(
-    scrollProgress,
-    [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05],
-    [10, 5, 0, 0, 5]
+    [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+    [0, 1, 1, 0]
   );
 
   // Dynamic scale for emphasis
   const scale = useTransform(
     scrollProgress,
-    [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05],
-    [0.85, 0.95, 1, 1, 0.95]
+    [startProgress - 0.1, startProgress, startProgress + 0.05, endProgress - 0.05, endProgress],
+    [0.9, 1, 1.02, 1.02, 0.95]
+  );
+
+  // Rotation effect for more dynamic movement
+  const rotate = useTransform(
+    scrollProgress,
+    [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+    direction === "left" ? [8, 0, 0, -8] : 
+    direction === "right" ? [-8, 0, 0, 8] : 
+    [0, 0, 0, 0]
   );
 
   const getTransform = () => {
@@ -43,26 +45,26 @@ export const AnimatedText = ({
       case "left":
         return useTransform(
           scrollProgress,
-          [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05, endProgress + 0.15],
-          [150, 80, 0, 0, -80, -150]
+          [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+          [120, 0, 0, -120]
         );
       case "right":
         return useTransform(
           scrollProgress,
-          [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05, endProgress + 0.15],
-          [-150, -80, 0, 0, 80, 150]
+          [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+          [-120, 0, 0, 120]
         );
       case "up":
         return useTransform(
           scrollProgress,
-          [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05, endProgress + 0.15],
-          [100, 50, 0, 0, -50, -100]
+          [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+          [80, 0, 0, -80]
         );
       case "down":
         return useTransform(
           scrollProgress,
-          [startProgress - 0.15, startProgress - 0.05, startProgress + 0.05, endProgress - 0.05, endProgress + 0.05, endProgress + 0.15],
-          [-100, -50, 0, 0, 50, 100]
+          [startProgress - 0.1, startProgress, endProgress, endProgress + 0.1],
+          [-80, 0, 0, 80]
         );
     }
   };
@@ -74,7 +76,7 @@ export const AnimatedText = ({
       style={{
         opacity,
         scale,
-        filter: blur.get() ? `blur(${blur.get()}px)` : "blur(0px)",
+        rotate,
         [direction === "left" || direction === "right" ? "x" : "y"]: transform,
       }}
       className={className}

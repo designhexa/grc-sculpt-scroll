@@ -6,32 +6,32 @@ interface AnimatedProductCardProps {
 }
 
 export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps) => {
-  // Precise X positioning to match puzzle slots exactly
+  // X positioning - smooth movement across sections
   const x = useTransform(
     scrollProgress,
-    [0, 0.08, 0.2, 0.25, 0.3, 0.45, 0.5, 0.55, 0.7, 0.75, 0.8, 0.9, 1.0],
-    ["0%", "0%", "0%", "0%", "-42%", "-42%", "-42%", "42%", "42%", "42%", "0%", "0%", "0%"]
+    [0, 0.08, 0.23, 0.25, 0.27, 0.48, 0.5, 0.52, 0.73, 0.75, 0.77, 0.92, 1.0],
+    ["0vw", "0vw", "0vw", "-18vw", "-18vw", "-18vw", "18vw", "18vw", "18vw", "0vw", "0vw", "0vw", "0vw"]
   );
 
-  // Precise Y positioning - smooth entrance and perfect alignment
+  // Y positioning - smooth entrance and exit with proper centering
   const y = useTransform(
     scrollProgress,
-    [0, 0.05, 0.08, 0.2, 0.88, 0.92, 1.0],
-    ["100%", "50%", "0%", "0%", "0%", "50%", "100%"]
+    [0, 0.04, 0.08, 0.92, 0.96, 1.0],
+    ["120vh", "60vh", "0vh", "0vh", "60vh", "120vh"]
   );
 
-  // Refined scale for smooth emphasis
+  // Scale with smooth emphasis on section 3
   const scale = useTransform(
     scrollProgress,
-    [0, 0.05, 0.08, 0.5, 0.52, 0.58, 0.6, 0.88],
-    [0.8, 0.9, 1, 1, 1.02, 1.12, 1.02, 1]
+    [0, 0.04, 0.08, 0.48, 0.5, 0.52, 0.54, 0.92],
+    [0.85, 0.95, 1, 1, 1.05, 1.15, 1.05, 1]
   );
 
-  // Enhanced opacity with smoother transitions
+  // Smooth opacity
   const opacity = useTransform(
     scrollProgress,
-    [0, 0.03, 0.08, 0.88, 0.92, 1.0],
-    [0, 0.5, 1, 1, 0.5, 0]
+    [0, 0.04, 0.08, 0.92, 0.96, 1.0],
+    [0, 0.6, 1, 1, 0.6, 0]
   );
 
   return (
