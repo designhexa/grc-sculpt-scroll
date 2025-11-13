@@ -26,6 +26,7 @@ const Index = () => {
     { x: 0, y: 0 },
     { x: 0, y: 0 },
   ]);
+  const [measured, setMeasured] = useState(false);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -42,6 +43,7 @@ const Index = () => {
         center(slot3Ref.current),
         center(slot4Ref.current),
       ]);
+      setMeasured(true);
     };
     requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
@@ -57,7 +59,9 @@ const Index = () => {
   return (
     <div ref={containerRef} className="relative min-h-[400vh]">
       {/* Animated Product Card */}
-      <AnimatedProductCard scrollProgress={scrollYProgress} targets={targets} />
+        {measured && (
+          <AnimatedProductCard scrollProgress={scrollYProgress} targets={targets} />
+        )}
 
       {/* Background layers for each section */}
       <motion.div
