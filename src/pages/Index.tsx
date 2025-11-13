@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedText } from "@/components/AnimatedText";
@@ -13,6 +13,41 @@ const Index = () => {
     offset: ["start start", "end end"],
   });
 
+  // Refs to puzzle slots
+  const slot1Ref = useRef<HTMLDivElement>(null);
+  const slot2Ref = useRef<HTMLDivElement>(null);
+  const slot3Ref = useRef<HTMLDivElement>(null);
+  const slot4Ref = useRef<HTMLDivElement>(null);
+
+  // Measure centers relative to viewport center
+  const [targets, setTargets] = useState<{ x: number; y: number }[]>([
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+  ]);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const center = (el: HTMLElement | null) => {
+        if (!el) return { x: 0, y: 0 };
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2 - vw / 2, y: r.top + r.height / 2 - vh / 2 };
+      };
+      setTargets([
+        center(slot1Ref.current),
+        center(slot2Ref.current),
+        center(slot3Ref.current),
+        center(slot4Ref.current),
+      ]);
+    };
+    requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   // Section backgrounds based on scroll
   const section1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 1, 0]);
   const section2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.4, 0.5], [0, 1, 1, 0]);
@@ -22,7 +57,7 @@ const Index = () => {
   return (
     <div ref={containerRef} className="relative min-h-[400vh]">
       {/* Animated Product Card */}
-      <AnimatedProductCard scrollProgress={scrollYProgress} />
+      <AnimatedProductCard scrollProgress={scrollYProgress} targets={targets} />
 
       {/* Background layers for each section */}
       <motion.div
@@ -67,7 +102,7 @@ const Index = () => {
           </AnimatedText>
 
           <div className="flex justify-center">
-            <motion.div
+            <motion.div ref={slot1Ref}
               style={{
                 opacity: useTransform(scrollYProgress, [0, 0.08, 0.2, 0.25], [0.3, 1, 1, 0]),
               }}
@@ -86,7 +121,7 @@ const Index = () => {
         <div className="container relative z-10 mx-auto">
           <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
             <div className="order-2 flex justify-center md:order-1">
-              <motion.div
+              <motion.div ref={slot2Ref}
                 style={{
                   opacity: useTransform(scrollYProgress, [0.2, 0.25, 0.45, 0.5], [0, 1, 1, 0]),
                 }}
@@ -199,7 +234,7 @@ const Index = () => {
             </AnimatedText>
 
             <div className="flex justify-center">
-              <motion.div
+              <motion.div ref={slot3Ref}
                 style={{
                   opacity: useTransform(scrollYProgress, [0.45, 0.5, 0.7, 0.75], [0, 1, 1, 0]),
                 }}
@@ -241,7 +276,7 @@ const Index = () => {
               </motion.div>
 
               <div className="flex justify-center">
-                <motion.div
+                <motion.div ref={slot4Ref}
                   style={{
                     opacity: useTransform(scrollYProgress, [0.7, 0.75, 0.9, 1.0], [0, 1, 1, 0]),
                   }}

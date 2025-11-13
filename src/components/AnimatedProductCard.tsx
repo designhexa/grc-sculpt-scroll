@@ -1,24 +1,45 @@
-import { motion, useTransform, MotionValue } from "framer-motion";
+import { motion, useTransform, MotionValue, useSpring } from "framer-motion";
 import ornamentImage from "@/assets/grc-ornament.jpg";
 
 interface AnimatedProductCardProps {
   scrollProgress: MotionValue<number>;
+  targets?: { x: number; y: number }[];
 }
 
-export const AnimatedProductCard = ({ scrollProgress }: AnimatedProductCardProps) => {
-  // X positioning - smooth movement across sections
-  const x = useTransform(
-    scrollProgress,
-    [0, 0.08, 0.23, 0.25, 0.27, 0.48, 0.5, 0.52, 0.73, 0.75, 0.77, 0.92, 1.0],
-    ["0vw", "0vw", "0vw", "-18vw", "-18vw", "-18vw", "18vw", "18vw", "18vw", "0vw", "0vw", "0vw", "0vw"]
-  );
+export const AnimatedProductCard = ({ scrollProgress, targets }: AnimatedProductCardProps) => {
+  // Stable target mapping based on measured puzzle slot centers
+  const t = targets ?? [
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+  ];
+  const safe = (i: number) => t[i] ?? { x: 0, y: 0 };
+  const points = [0, 0.24, 0.26, 0.49, 0.51, 0.74, 0.76, 1.0];
 
-  // Y positioning - smooth entrance and exit with proper centering
-  const y = useTransform(
-    scrollProgress,
-    [0, 0.04, 0.08, 0.92, 0.96, 1.0],
-    ["120vh", "60vh", "0vh", "0vh", "60vh", "120vh"]
-  );
+  const xRaw = useTransform(scrollProgress, points, [
+    safe(0).x,
+    safe(0).x,
+    safe(1).x,
+    safe(1).x,
+    safe(2).x,
+    safe(2).x,
+    safe(3).x,
+    safe(3).x,
+  ]);
+  const yRaw = useTransform(scrollProgress, points, [
+    safe(0).y,
+    safe(0).y,
+    safe(1).y,
+    safe(1).y,
+    safe(2).y,
+    safe(2).y,
+    safe(3).y,
+    safe(3).y,
+  ]);
+
+  const x = useSpring(xRaw, { stiffness: 160, damping: 26, mass: 0.9 });
+  const y = useSpring(yRaw, { stiffness: 160, damping: 26, mass: 0.9 });
 
   // Scale with smooth emphasis on section 3
   const scale = useTransform(
