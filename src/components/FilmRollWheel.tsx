@@ -1,53 +1,47 @@
-// FilmRollWheelFull.tsx
 import React, {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  forwardRef,
   Suspense,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
-
 import * as THREE from "three";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
-
-import {
-  OrbitControls,
-  PerspectiveCamera,
-  Environment,
-  Html,
-  useTexture,
-} from "@react-three/drei";
-
+import { PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
-
 /**
- * FULL IMPLEMENTATION
- * - Pivot (rotation axis) fixed at PIVOT_WORLD_X (this maps to "screen right" via camera offset)
- * - Wheel rendered as child of pivot, but shifted left by radius so pivot is wheel's right edge
- * - Drag rotates pivot (so wheel rotates around that axis)
- * - Inertia on drag release
- * - Auto-rotate (play/pause)
- * - Hover effects on cards
- * - Detail panel (left)
- * - Camera group offset trick so pivot projects to the right side of the viewport
+ * FilmRollWheel.tsx
  *
- * Usage: paste into your React project; ensure drei & @react-three/fiber present.
+ * Single-file component that draws a circular "wheel" of ornament cards.
+ * Pivot (rotation axis) is fixed at world X = PIVOT_WORLD_X (a vertical line).
+ * The wheel visuals are shifted left so the pivot sits at the RIGHT edge
+ * of the wheel. Mouse drag left/right rotates the pivot (thus wheel rotates).
+ *
+ * Key configuration:
+ *  - Pivot X = 4 (user requested)
+ *  - Camera sits to the right of pivot so pivot appears near right edge
+ *  - No panning of camera; mouse only rotates the wheel
+ *
+ * Notes:
+ *  - This file is intentionally verbose (lots of comments) so you can read
+ *    and tweak behavior easily.
  */
 
-/* =========================
-   CONFIG / CONSTANTS
-   ========================= */
-const PIVOT_WORLD_X = 6; // world X coordinate used as the pivot (screen-right line)
-const CAMERA_GROUP_OFFSET_X = 10; // move camera group left/right so pivot projects near screen edge
-const CAMERA_BASE_POS: [number, number, number] = [12, 3, 9];
-const WHEEL_RADIUS = 6;
-const CARD_COUNT = 12;
+/* ===========================
+   CONFIG
+   =========================== */
 
-/* =========================
-   DATA
-   ========================= */
+const PIVOT_WORLD_X = 4; // user requested pivot vertical line X=4 (screen-right axis)
+const WHEEL_RADIUS = 6; // visible radius of wheel
+const CAMERA_POSITION: [number, number, number] = [10.5, 3.0, 11]; // camera placed right of pivot
+const CAMERA_FOV = 45;
+
+/* ===========================
+   Data: sample ornaments
+   =========================== */
+
 interface OrnamentData {
   id: number;
   name: string;
@@ -61,11 +55,12 @@ interface OrnamentData {
   };
 }
 
-const ornamentData: OrnamentData[] = Array.from({ length: CARD_COUNT }).map((_, i) => ({
+const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Ornamen ${i + 1}`,
   texture: grcOrnament,
-  description: `Ornamen GRC premium dengan desain klasik yang elegan. Cocok untuk dekorasi eksterior maupun interior bangunan.`,
+  description:
+    "Ornamen GRC premium dengan desain klasik yang elegan. Cocok untuk dekorasi eksterior maupun interior bangunan.",
   specs: {
     material: "Glass Fiber Reinforced Concrete",
     dimensions: `${60 + i * 5}cm x ${40 + i * 3}cm x ${8 + i}cm`,
@@ -74,136 +69,188 @@ const ornamentData: OrnamentData[] = Array.from({ length: CARD_COUNT }).map((_, 
   },
 }));
 
-/* =========================
+/* ===========================
+   Helper: clamp and ease
+   =========================== */
+
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/* ===========================
    Card component
-   ========================= */
+   - Card positioned on circle and rotated to face outward.
+   - Important: rotationY set so the card front faces outward (toward camera).
+   =========================== */
+
 interface CardProps {
   data: OrnamentData;
-  angle: number;
+  angle: number; // base angle (radians)
   radius: number;
   isSelected: boolean;
-  onClick: (id: number) => void;
-  wheelRotation: number; // used to compute final angle (if needed)
+  onClick: () => void;
+  wheelRotation: number; // wheel rotation offset in radians
 }
 
-function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardProps) {
+function Card({
+  data,
+  angle,
+  radius,
+  isSelected,
+  onClick,
+  wheelRotation,
+}: CardProps) {
   const meshRef = useRef<THREE.Mesh | null>(null);
+  // useTexture from drei caches textures; flipY false may be needed for certain loaders
   const texture = useTexture(data.texture);
 
-  // safe wrapping
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
+  // Ensure wrapping & orientation stable
+  useEffect(() => {
+    if (!texture) return;
+    // make sure texture doesn't flip unexpectedly
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    // optional: adjust repeat if needed
+    texture.repeat.set(1, 1);
+    // for GLTF normal usage, flipY default is fine but we ensure true orientation
+    texture.needsUpdate = true;
+  }, [texture]);
 
+  // total angle = base + wheel rotation
   const totalAngle = angle + wheelRotation;
+
+  // position on circle (X forward is right, Z forward is out of screen)
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  const rotationY = totalAngle + Math.PI; // face outward (adjust as needed)
 
-  const handleClick = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    onClick(data.id);
-  };
+  // Compute rotation so the card faces outward (front faces away from center)
+  // If card's local +Z is its front face, then rotateY so +Z aligns to vector from card to camera.
+  // Vector from center to card is (x, 0, z) — pointing from origin to card
+  // We want card's +Z to point outward (same as (x, 0, z)), so rotationY = atan2(x, z)
+  const rotationY = Math.atan2(x, z) + Math.PI; // add PI to make front face outward
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
-      {/* Back frame */}
+      {/* back panel */}
       <mesh position={[0, 0, -0.06]}>
         <boxGeometry args={[3.6, 2.6, 0.04]} />
-        <meshStandardMaterial color={isSelected ? "#D4A574" : "#6B5B4F"} metalness={0.4} roughness={0.3} />
+        <meshStandardMaterial
+          color={isSelected ? "#D4A574" : "#7b6350"}
+          metalness={0.4}
+          roughness={0.4}
+        />
       </mesh>
 
-      {/* Main card */}
-      <mesh ref={meshRef} onClick={handleClick} castShadow receiveShadow>
+      {/* main card box */}
+      <mesh
+        ref={meshRef}
+        onClick={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        position={[0, 0, 0]}
+      >
         <boxGeometry args={[3.4, 2.4, 0.12]} />
-        <meshStandardMaterial map={texture} metalness={0.2} roughness={0.7} />
+        <meshStandardMaterial
+          map={texture}
+          metalness={0.15}
+          roughness={0.6}
+          emissive={isSelected ? "#D4A574" : "#000000"}
+          emissiveIntensity={isSelected ? 0.28 : 0}
+          side={THREE.FrontSide}
+        />
       </mesh>
 
-      {/* HTML label (unaffected by pointer events) */}
-      <Html position={[0, -1.6, 0.1]} center distanceFactor={8} style={{ pointerEvents: "none" }}>
-        <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-md border border-white/20 text-xs font-bold text-primary">
-          ORN. {data.id}
+      {/* Html label below the card */}
+      <Html position={[0, -1.6, 0.08]} center distanceFactor={8} style={{ pointerEvents: "none" }}>
+        <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-md border border-white/30 whitespace-nowrap">
+          <span style={{ fontWeight: 700, fontSize: 12, color: "#f7f5f2", letterSpacing: 1 }}>
+            ORN. {data.id}
+          </span>
         </div>
       </Html>
     </group>
   );
 }
 
-/* =========================
-   WheelWithGear (forwardRef)
-   - Receives rotation value (via pivot group) but actual rotation is via parent pivot.
-   - This returns a group shifted left by radius so pivot sits on wheel right-edge.
-   ========================= */
+/* ===========================
+   WheelWithGear component (forwardRef)
+   - Accepts rotation for visual gear rotation.
+   - Is shifted left by -radius so the pivot (parent) is at the wheel's RIGHT edge.
+   =========================== */
+
 type WheelWithGearProps = {
   selectedId: number | null;
   onSelect: (id: number | null) => void;
-  wheelRotationLocal: number; // optional local rotation for decorations
+  rotation: number; // rotation radians used for visual gear spin and card positions
 };
 
 const WheelWithGear = forwardRef<THREE.Group, WheelWithGearProps>(function WheelWithGear(
-  { selectedId, onSelect, wheelRotationLocal },
+  { selectedId, onSelect, rotation },
   ref
 ) {
   const radius = WHEEL_RADIUS;
-  const cardCount = CARD_COUNT;
+  const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
-  // gear geometry params
-  const gearTeeth = 24;
-  const gearInnerRadius = 1.2;
+  const gearTeeth = 28;
+  const gearInnerRadius = 1.15;
   const gearOuterRadius = 1.6;
 
+  // return wheel group shifted left, so parent pivot placed at the wheel's right edge
   return (
-    <group ref={ref} position={[-radius, 0, 0]} rotation={[0, 0, 0]}>
-      {/* Center gear body (rotates visually by wheelRotationLocal) */}
-      <group rotation={[Math.PI / 2, 0, wheelRotationLocal || 0]}>
-        <mesh castShadow>
+    <group ref={ref} position={[-radius, 0, 0]}>
+      {/* central gear (rotating visually) */}
+      <group rotation={[Math.PI / 2, 0, rotation]}>
+        <mesh>
           <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
           <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.25} />
         </mesh>
 
-        {/* teeth */}
         {Array.from({ length: gearTeeth }).map((_, i) => {
-          const toothAngle = (i / gearTeeth) * Math.PI * 2;
-          const toothX = Math.cos(toothAngle) * gearInnerRadius;
-          const toothZ = Math.sin(toothAngle) * gearInnerRadius;
+          const t = (i / gearTeeth) * Math.PI * 2;
           return (
-            <mesh key={i} position={[toothX, 0, toothZ]} rotation={[0, -toothAngle, 0]} castShadow>
-              <boxGeometry args={[0.38, 0.28, 0.25]} />
-              <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.35} />
+            <mesh
+              key={i}
+              position={[Math.cos(t) * gearInnerRadius, 0, Math.sin(t) * gearInnerRadius]}
+              rotation={[0, -t, 0]}
+            >
+              <boxGeometry args={[0.38, 0.34, 0.22]} />
+              <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
             </mesh>
           );
         })}
       </group>
 
-      {/* Outer rings */}
+      {/* outer rings */}
       <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius, 0.08, 8, 128]} />
-        <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.25} />
+        <torusGeometry args={[radius, 0.08, 12, 160]} />
+        <meshStandardMaterial color="#8B7355" metalness={0.45} roughness={0.33} />
       </mesh>
       <mesh position={[0, -1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius, 0.08, 8, 128]} />
-        <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.25} />
+        <torusGeometry args={[radius, 0.08, 12, 160]} />
+        <meshStandardMaterial color="#8B7355" metalness={0.45} roughness={0.33} />
       </mesh>
 
-      {/* rods */}
+      {/* rods connecting center to cards */}
       {Array.from({ length: cardCount }).map((_, i) => {
-        const rodAngle = (i / cardCount) * Math.PI * 2 + (wheelRotationLocal || 0);
+        const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
         const innerX = Math.sin(rodAngle) * gearOuterRadius;
         const innerZ = Math.cos(rodAngle) * gearOuterRadius;
-        const outerX = Math.sin(rodAngle) * (radius - 0.5);
-        const outerZ = Math.cos(rodAngle) * (radius - 0.5);
+        const outerX = Math.sin(rodAngle) * (radius - 0.6);
+        const outerZ = Math.cos(rodAngle) * (radius - 0.6);
         const midX = (innerX + outerX) / 2;
         const midZ = (innerZ + outerZ) / 2;
         const rodLength = Math.hypot(outerX - innerX, outerZ - innerZ);
+
         return (
           <mesh key={i} position={[midX, 0, midZ]} rotation={[0, -rodAngle, 0]}>
             <boxGeometry args={[rodLength, 0.06, 0.06]} />
-            <meshStandardMaterial color="#6B5B4F" metalness={0.45} roughness={0.35} />
+            <meshStandardMaterial color="#6B5B4F" metalness={0.45} roughness={0.4} />
           </mesh>
         );
       })}
 
-      {/* cards */}
+      {/* cards themselves */}
       {ornamentData.map((data, index) => (
         <Card
           key={data.id}
@@ -211,172 +258,228 @@ const WheelWithGear = forwardRef<THREE.Group, WheelWithGearProps>(function Wheel
           angle={index * angleStep}
           radius={radius}
           isSelected={selectedId === data.id}
-          onClick={(id) => onSelect(id)}
-          wheelRotation={wheelRotationLocal}
+          onClick={() => onSelect(selectedId === data.id ? null : data.id)}
+          wheelRotation={rotation}
         />
       ))}
     </group>
   );
 });
 
-/* =========================
-   DetailPanel (left)
-   ========================= */
+/* ===========================
+   Detail Panel component (HTML overlay)
+   =========================== */
+
 function DetailPanel({ data, onClose }: { data: OrnamentData | null; onClose: () => void }) {
   if (!data) return null;
+
   return (
-    <div className="absolute left-4 md:left-6 top-24 bottom-24 w-72 md:w-80 bg-background/95 backdrop-blur-xl border-2 border-primary/30 rounded-2xl shadow-2xl overflow-hidden z-30 animate-fade-in">
-      <div className="h-full flex flex-col">
-        <div className="p-4 md:p-6 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">{data.name}</h2>
+    <div
+      style={{
+        position: "absolute",
+        left: 16,
+        top: 96,
+        bottom: 96,
+        width: 320,
+        background: "rgba(15,12,10,0.95)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 20,
+        padding: 12,
+        zIndex: 40,
+        color: "#f7f5f2",
+        overflow: "hidden",
+        boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ width: 10, height: 10, background: "#D4A574", borderRadius: 999 }} />
+          <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 1 }}>{data.name}</div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.03)",
+            border: "none",
+            color: "#f7f5f2",
+            cursor: "pointer",
+          }}
+          aria-label="close"
+        >
+          ×
+        </button>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,0.04)" }}>
+          <img src={data.texture} alt={data.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, color: "rgba(255,255,255,0.8)" }}>
+        <p style={{ margin: 0, fontSize: 13 }}>{data.description}</p>
+      </div>
+
+      <div style={{ marginTop: 14, overflowY: "auto", maxHeight: 160 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#f7f5f2", marginBottom: 8 }}>Spesifikasi</div>
+        {Object.entries(data.specs).map(([key, value]) => (
+          <div key={key} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+            <div style={{ textTransform: "uppercase", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
+              {key === "material" ? "Material" : key === "dimensions" ? "Dimensi" : key === "weight" ? "Berat" : "Finishing"}
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center">
-              <span className="text-foreground text-lg">×</span>
-            </button>
+            <div style={{ fontSize: 13, color: "#f7f5f2", maxWidth: "58%", textAlign: "right" }}>{value}</div>
           </div>
-        </div>
-
-        <div className="p-4">
-          <div className="aspect-video rounded-xl overflow-hidden border border-primary/20">
-            <img src={data.texture} alt={data.name} className="w-full h-full object-cover" />
-          </div>
-        </div>
-
-        <div className="px-4 md:px-6 pb-4">
-          <p className="text-sm text-muted-foreground leading-relaxed">{data.description}</p>
-        </div>
-
-        <div className="flex-1 px-4 md:px-6 pb-6 overflow-auto">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-accent rounded-full" /> Spesifikasi
-          </h3>
-          <div className="space-y-3">
-            {Object.entries(data.specs).map(([key, value]) => (
-              <div key={key} className="flex justify-between items-center py-2 border-b border-primary/10">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {key === "material" ? "Material" : key === "dimensions" ? "Dimensi" : key === "weight" ? "Berat" : "Finishing"}
-                </span>
-                <span className="text-sm font-medium text-foreground text-right max-w-[50%]">{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/* =========================
-   LoadingFallback
-   ========================= */
+/* ===========================
+   Loading fallback UI
+   =========================== */
+
 function LoadingFallback() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <p className="text-muted-foreground">Loading 3D Scene...</p>
+    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#0e0b09" }}>
+      <div style={{ textAlign: "center", color: "rgba(255,255,255,0.8)" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 999, border: "4px solid rgba(255,255,255,0.08)", borderTopColor: "#D4A574", margin: "0 auto", animation: "spin 1s linear infinite" }} />
+        <div style={{ marginTop: 12, fontSize: 13 }}>Loading 3D Scene...</div>
       </div>
     </div>
   );
 }
 
-/* =========================
-   Scene
-   - pivotRef at world X (this is rotation axis)
-   - cameraGroup is offset so pivot projects to the right side
-   - mouse drag rotates pivot (and only pivot)
-   - inertia implemented for smooth spin after release
-   ========================= */
+/* small CSS keyframes for spin (we inject inline) */
+const styleEl = document.createElement("style");
+styleEl.innerHTML = `
+@keyframes spin { to { transform: rotate(360deg); } }
+`;
+document.head.appendChild(styleEl);
+
+/* ===========================
+   Scene component
+   - Pivot group placed at PIVOT_WORLD_X
+   - WheelWithGear is child of pivot and shifted left by -radius => pivot is at right edge
+   - Camera fixed in world space (no orbit controls to move camera)
+   - Mouse drag rotates pivot around world Y axis
+   =========================== */
+
 function Scene({
   selectedId,
   onSelect,
   isAutoPlaying,
-  setIsAutoPlaying,
-  setSelectedId,
 }: {
   selectedId: number | null;
   onSelect: (id: number | null) => void;
   isAutoPlaying: boolean;
-  setIsAutoPlaying: (v: boolean) => void;
-  setSelectedId: (id: number | null) => void;
 }) {
+  // pivotRef controls the world transform of the wheel's pivot (vertical axis at world X = PIVOT_WORLD_X)
   const pivotRef = useRef<THREE.Group | null>(null);
-  const cameraGroupRef = useRef<THREE.Group | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const controlsRef = useRef<any>(null);
+
+  // wheelRef forwarded into WheelWithGear (the child) in case you want to access wheel local group
   const wheelRef = useRef<THREE.Group | null>(null);
 
-  const [wheelRotationLocal, setWheelRotationLocal] = useState(0);
+  // rotation state used for visual gear spin and for card positions
+  // pivotRef.rotation.y is final source-of-truth for wheel visual rotation (because mouse drags change pivot)
+  // but we keep a small rotatingVisual to spin gears independently if needed
+  const [gearSpin, setGearSpin] = useState(0);
 
-  // drag state
+  // drag handling (mouse)
   const isDragging = useRef(false);
-  const prevX = useRef(0);
-  const velocity = useRef(0); // angular velocity (radians/sec)
-  const lastFrame = useRef<number | null>(null);
+  const prevClientX = useRef(0);
+  const velocity = useRef(0); // inertia
 
-  // auto-rotate speed (when isAutoPlaying)
-  const AUTO_SPEED = 0.15; // rad/s
+  // damping/inertia params
+  const DRAG_SPEED = 0.01; // multiplier for drag -> radians
+  const INERTIA_FRICTION = 0.95; // friction applied per frame when not dragging
+  const MAX_VELOCITY = 0.6; // clamp to avoid runaway
 
-  // Handle drag events on window
+  // auto-rotation when playing (gentle rotation)
+  const AUTO_ROTATION_SPEED = 0.15;
+
+  // useFrame to update pivot rotation and inertia
+  useFrame((_, delta) => {
+    // if auto-playing and not dragging, slowly rotate pivot
+    if (isAutoPlaying && !isDragging.current) {
+      if (pivotRef.current) pivotRef.current.rotation.y += AUTO_ROTATION_SPEED * delta;
+    }
+
+    // apply inertia velocity if present
+    if (!isDragging.current) {
+      if (Math.abs(velocity.current) > 1e-4 && pivotRef.current) {
+        pivotRef.current.rotation.y += velocity.current;
+        velocity.current *= INERTIA_FRICTION;
+        // clamp if extremely small
+        if (Math.abs(velocity.current) < 1e-5) velocity.current = 0;
+      }
+    }
+
+    // visual gear spin — independent small spin to show movement
+    setGearSpin((s) => s + delta * 1.6);
+  });
+
+  // attach mouse handlers to window to ensure drag continues if pointer leaves canvas
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       // only left button
       if (e.button !== 0) return;
       isDragging.current = true;
-      prevX.current = e.clientX;
+      prevClientX.current = e.clientX;
+      // stop inertia while dragging
       velocity.current = 0;
-      setIsAutoPlaying(false); // stop auto-play while dragging
+      // stop auto-play while dragging
     };
 
     const onMove = (e: MouseEvent) => {
-      if (!isDragging.current || !pivotRef.current) return;
-      const dx = e.clientX - prevX.current;
-      prevX.current = e.clientX;
-
-      // Map screen delta to rotation around pivot's Y axis
-      const rotationDelta = -dx * 0.01; // tweak sensitivity
-      pivotRef.current.rotation.y += rotationDelta;
-
-      // update instantaneous velocity (simple lowpass)
-      velocity.current = THREE.MathUtils.lerp(velocity.current, rotationDelta / (1 / 60), 0.2);
-    };
-
-    const onUp = () => {
       if (!isDragging.current) return;
-      isDragging.current = false;
-      // on release, we let inertia (velocity) spin and then decay
-      // If velocity is very small, ignore
-      if (Math.abs(velocity.current) < 0.0005) velocity.current = 0;
+      const dx = e.clientX - prevClientX.current;
+      prevClientX.current = e.clientX;
+
+      // rotate pivot around world Y by deltaX * DRAG_SPEED
+      const deltaRad = dx * DRAG_SPEED * 0.8; // reduce sensitivity a bit
+      if (pivotRef.current) {
+        pivotRef.current.rotation.y -= deltaRad;
+      }
+
+      // set velocity for inertia
+      velocity.current = clamp(deltaRad * 0.8, -MAX_VELOCITY, MAX_VELOCITY);
     };
 
-    // touch support
-    const onTouchStart = (e: TouchEvent) => {
-      isDragging.current = true;
-      prevX.current = e.touches[0].clientX;
-      velocity.current = 0;
-      setIsAutoPlaying(false);
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging.current || !pivotRef.current) return;
-      const dx = e.touches[0].clientX - prevX.current;
-      prevX.current = e.touches[0].clientX;
-      const rotationDelta = -dx * 0.01;
-      pivotRef.current.rotation.y += rotationDelta;
-      velocity.current = THREE.MathUtils.lerp(velocity.current, rotationDelta / (1 / 60), 0.2);
-    };
-    const onTouchEnd = () => {
+    const onUp = (_e: MouseEvent) => {
       isDragging.current = false;
-      if (Math.abs(velocity.current) < 0.0005) velocity.current = 0;
     };
 
     window.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
 
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    // touch events for mobile
+    let touchStartX = 0;
+    const onTouchStart = (ev: TouchEvent) => {
+      isDragging.current = true;
+      touchStartX = ev.touches[0].clientX;
+      prevClientX.current = touchStartX;
+      velocity.current = 0;
+    };
+    const onTouchMove = (ev: TouchEvent) => {
+      if (!isDragging.current) return;
+      const x = ev.touches[0].clientX;
+      const dx = x - prevClientX.current;
+      prevClientX.current = x;
+      const deltaRad = dx * DRAG_SPEED * 0.9;
+      if (pivotRef.current) pivotRef.current.rotation.y -= deltaRad;
+      velocity.current = clamp(deltaRad * 0.8, -MAX_VELOCITY, MAX_VELOCITY);
+    };
+    const onTouchEnd = () => {
+      isDragging.current = false;
+    };
+
+    window.addEventListener("touchstart", onTouchStart);
     window.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd);
 
@@ -384,175 +487,113 @@ function Scene({
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
-
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
     };
-  }, [setIsAutoPlaying]);
-
-  // useFrame loop: apply inertia if not dragging, apply auto-rotate if enabled
-  useFrame((state, delta) => {
-    // keep controls target locked to pivot
-    if (controlsRef.current) {
-      controlsRef.current.target.set(PIVOT_WORLD_X, 0, 0);
-      controlsRef.current.update();
-    }
-
-    // auto rotate when enabled and not dragging and no velocity
-    if (isAutoPlaying && !isDragging.current && Math.abs(velocity.current) < 0.0001 && pivotRef.current) {
-      pivotRef.current.rotation.y += AUTO_SPEED * delta;
-    }
-
-    // if inertia present (velocity), apply it and decay
-    if (!isDragging.current && Math.abs(velocity.current) > 0.000001 && pivotRef.current) {
-      pivotRef.current.rotation.y += velocity.current * delta;
-      // decay factor (friction)
-      const friction = Math.max(0.92, 1 - 1.5 * delta); // tweak for feel
-      velocity.current *= friction;
-      // clamp tiny velocities to zero
-      if (Math.abs(velocity.current) < 0.00002) velocity.current = 0;
-    }
-
-    // keep a local wheel rotation for visual gear spin (inverse of pivot rotation for charm)
-    if (pivotRef.current) {
-      setWheelRotationLocal(-pivotRef.current.rotation.y * 0.7);
-    }
-  });
-
-  // Set camera view offset so pivot projects to right edge-ish
-  useEffect(() => {
-    const cam = cameraRef.current;
-    if (!cam) return;
-    const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      // shift the camera's view so pivot appears further to the right.
-      // setViewOffset(fullWidth, fullHeight, x, y, fullWidth, fullHeight)
-      // we place pivot near 80% of screen width -> x offset = w * 0.7
-      const offsetX = Math.floor(w * 0.5); // we offset half width inside cameraGroup; cameraGroup also offsets
-      // NOTE: Using setViewOffset can behave strangely when resizing; keep a mild offset
-      cam.setViewOffset(w, h, Math.floor(w * 0.48), 0, w, h);
-      cam.updateProjectionMatrix();
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // lock pointer cursor while dragging
-  useEffect(() => {
-    const onMove = () => {
-      document.body.style.cursor = isDragging.current ? "grabbing" : "auto";
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+  // When user clicks a card, this centers/opens detail panel; keep pivot static
+  // We don't change pivot position on select; only stop autoplay (handled externally in caller)
 
   return (
     <>
-      <color attach="background" args={["#0f0b09"]} />
-      <fog attach="fog" args={["#0f0b09", 10, 40]} />
+      {/* background color */}
+      <color attach="background" args={["#0f0c0a"]} />
 
+      {/* fog for depth */}
+      <fog attach="fog" args={["#0f0c0a", 18, 40]} />
+
+      {/* Lights */}
       <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 12, 6]} intensity={1.2} color="#fff8e7" />
-      <pointLight position={[-8, 2, -6]} intensity={0.25} color="#d4a574" />
+      <directionalLight position={[12, 14, 8]} intensity={1.0} color={"#fff9ee"} />
+      <pointLight position={[0, 8, 0]} intensity={0.25} color={"#ffffff"} />
 
-      {/* Pivot group: fixed X position in world space. Rotating this rotates the wheel around right-edge axis. */}
+      {/* Pivot is the vertical axis line at x = PIVOT_WORLD_X */}
       <group ref={pivotRef} position={[PIVOT_WORLD_X, 0, 0]}>
-        {/* WheelWithGear (shifted left inside) */}
-        <WheelWithGear ref={wheelRef} selectedId={selectedId} onSelect={onSelect} wheelRotationLocal={wheelRotationLocal} />
+        {/* Wheel visual is child; wheel is internally shifted left (-radius) so pivot sits at right edge */}
+        <WheelWithGear ref={wheelRef} selectedId={selectedId} onSelect={onSelect} rotation={gearSpin} />
       </group>
 
-      {/* Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
-        <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
+      {/* Ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3.8, 0]}>
+        <planeGeometry args={[180, 180]} />
+        <meshStandardMaterial color={"#070502"} metalness={0.2} roughness={0.95} />
       </mesh>
 
-      {/* Camera group: shifted left (negative X) so pivot appears at right screen */}
-      <group ref={cameraGroupRef} position={[-CAMERA_GROUP_OFFSET_X, 0, 0]}>
-        <PerspectiveCamera ref={cameraRef} makeDefault position={CAMERA_BASE_POS} fov={50} />
+      {/* Camera (fixed) — we position camera to the right so the pivot appears near screen right */}
+      <PerspectiveCamera makeDefault fov={CAMERA_FOV} position={CAMERA_POSITION} />
 
-        {/* OrbitControls: keep zoom/pan off; rotation disabled so user can't move camera around pivot */}
-        <OrbitControls
-          ref={controlsRef}
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-          // rotateSpeed/limits irrelevant because rotate disabled
-        />
-      </group>
-
+      {/* Environment (lighting probe) */}
       <Environment preset="warehouse" background={false} />
     </>
   );
 }
 
-/* =========================
-   Main Page Component
-   ========================= */
-export default function FilmRollWheelFull() {
+/* ===========================
+   Main page component
+   - Header, controls, canvas
+   - Keeps `isAutoPlaying` state: when user selects a card autoplay stops
+   =========================== */
+
+export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
+  const selectedData = selectedId ? ornamentData.find((o) => o.id === selectedId) || null : null;
+
   const handleSelect = useCallback((id: number | null) => {
     setSelectedId(id);
-    if (id) setIsAutoPlaying(false);
+    if (id !== null) setIsAutoPlaying(false);
   }, []);
 
   return (
-    <div className="relative w-full h-screen bg-background overflow-hidden">
-      {/* subtle bg */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 pointer-events-none z-0" />
+    <div style={{ position: "relative", width: "100%", height: "100vh", background: "#0f0c0a", overflow: "hidden" }}>
+      {/* subtle background gradient overlay */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(180deg, rgba(12,10,9,0.15), rgba(0,0,0,0.0))", zIndex: 0 }} />
 
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-background/90 to-transparent backdrop-blur-sm z-20">
-        <div className="h-full px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-lg" />
-            <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">GRC Ornaments</h1>
-          </div>
+      {/* header */}
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 80, zIndex: 30, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", background: "linear-gradient(180deg, rgba(15,12,10,0.92), rgba(15,12,10,0.0))" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ width: 10, height: 10, background: "#D4A574", borderRadius: 999 }} />
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#f7f5f2" }}>GRC Ornaments</div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsAutoPlaying((s) => !s)}
-              className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all ${
-                isAutoPlaying ? "bg-accent/20 border-accent text-accent" : "bg-primary/10 border-primary/30 text-foreground"
-              }`}
-            >
-              <span className="text-xs md:text-sm font-medium uppercase tracking-wide">{isAutoPlaying ? "⏸ Pause" : "▶ Play"}</span>
-            </button>
-          </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            onClick={() => setIsAutoPlaying((s) => !s)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.04)",
+              background: isAutoPlaying ? "rgba(212,165,116,0.12)" : "rgba(255,255,255,0.02)",
+              color: isAutoPlaying ? "#D4A574" : "#f7f5f2",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            {isAutoPlaying ? "⏸ Pause" : "▶ Play"}
+          </button>
         </div>
       </div>
 
-      {/* DetailPanel */}
-      <DetailPanel data={selectedId ? ornamentData.find((o) => o.id === selectedId) || null : null} onClose={() => setSelectedId(null)} />
+      {/* detail panel */}
+      <DetailPanel data={selectedData} onClose={() => setSelectedId(null)} />
 
-      {/* Instruction bubble */}
+      {/* instruction bubble bottom center */}
       {!selectedId && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
-          <div className="bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 rounded-full border border-primary/30 shadow-lg">
-            <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
-              Klik dan geser untuk memutar roda
-            </p>
+        <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: 24, zIndex: 30 }}>
+          <div style={{ background: "rgba(15,12,10,0.8)", padding: "8px 14px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.04)" }}>
+            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>Klik ornamen untuk melihat detail</div>
           </div>
         </div>
       )}
 
-      {/* 3D Canvas */}
-      <div className="absolute inset-0 z-10">
+      {/* 3D canvas */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas shadows dpr={[1, 2]}>
-            <Scene
-              selectedId={selectedId}
-              onSelect={handleSelect}
-              isAutoPlaying={isAutoPlaying}
-              setIsAutoPlaying={setIsAutoPlaying}
-              setSelectedId={setSelectedId}
-            />
+          <Canvas dpr={[1, 2]} camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}>
+            <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
           </Canvas>
         </Suspense>
       </div>
