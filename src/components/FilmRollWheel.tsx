@@ -49,12 +49,12 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  // Card faces outward - no additional rotation needed, front of box faces away from center
-  const rotationY = -totalAngle;
+  // Face outward - rotation points away from center
+  const rotationY = totalAngle;
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
-      {/* Card frame (behind the texture) */}
+      {/* Card frame (behind) */}
       <mesh position={[0, 0, -0.08]}>
         <boxGeometry args={[3.6, 2.6, 0.04]} />
         <meshStandardMaterial
@@ -124,34 +124,38 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
   return (
     <group ref={wheelRef}>
-      {/* Center gear hub - lying flat like a flywheel, rotating around Y axis */}
-      <group rotation={[0, rotation, 0]}>
-        {/* Main gear body - flat disc */}
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.3, 32]} />
+      {/* Center gear hub */}
+      <group rotation={[Math.PI / 2, 0, rotation]}>
+        {/* Main gear body */}
+        <mesh>
+          <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
           <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.3} />
         </mesh>
         
-        {/* Gear teeth - around the edge of the flat disc */}
+        {/* Gear teeth */}
         {Array.from({ length: gearTeeth }, (_, i) => {
           const toothAngle = (i / gearTeeth) * Math.PI * 2;
-          const toothX = Math.sin(toothAngle) * gearInnerRadius;
-          const toothZ = Math.cos(toothAngle) * gearInnerRadius;
+          const toothX = Math.cos(toothAngle) * gearInnerRadius;
+          const toothZ = Math.sin(toothAngle) * gearInnerRadius;
           return (
             <mesh
               key={i}
               position={[toothX, 0, toothZ]}
-              rotation={[0, toothAngle, 0]}
+              rotation={[0, -toothAngle, 0]}
             >
-              <boxGeometry args={[0.35, 0.25, 0.2]} />
+              <boxGeometry args={[0.4, 0.35, 0.25]} />
               <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
             </mesh>
           );
         })}
         
-        {/* Center hub detail - hexagonal bolt */}
-        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.6, 0.6, 0.5, 6]} />
+        {/* Center hole detail */}
+        <mesh position={[0, 0.21, 0]}>
+          <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
+          <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, -0.21, 0]}>
+          <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
           <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
         </mesh>
       </group>
