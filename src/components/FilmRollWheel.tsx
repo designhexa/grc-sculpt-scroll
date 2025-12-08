@@ -45,9 +45,9 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
 
   return (
     <group position={[x, 0, z]} rotation={[0, totalAngle, 0]}>
-      <mesh position={[0, 0, -0.08]}>
-        <boxGeometry args={[3.6, 2.6, 0.04]} />
-        <meshStandardMaterial color={isSelected ? "#D4A574" : "#8B7355"} />
+      <mesh position={[6.01, 0, 0]} rotation={[0, Math.PI/2, 0]}>
+        <planeGeometry args={[20, 20]} />
+        <meshStandardMaterial color="#1a1510" />
       </mesh>
 
       <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
@@ -280,6 +280,12 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const pivotRef = useRef<THREE.Group>(null);
   const wheelRef = useRef<THREE.Group>(null);
 
+  useFrame((_, delta) => {
+    if (isAutoPlaying && pivotRef.current) {
+      pivotRef.current.rotation.y += delta * 0.15; // speed
+    }
+  });
+
   useEffect(() => {
     // Lock orbit focus ke wheel (bukan center scene)
     if (controlsRef.current) {
@@ -309,9 +315,9 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <Environment preset="warehouse" background={false} />
 
       {/* Pivot now moves to right side of view */}
-      <group ref={pivotRef} position={[6, 0, 0]}>
-        {/* Wheel stays centered *within pivot*, but visually offset */}
-        <group ref={wheelRef} position={[-5.8, 0, 0]}>
+      <group ref={pivotRef} position={[rightEdge, 0, 0]}>
+          {/* Wheel contents, centered inside pivot */}
+        <group ref={pivotRef} position={[6, 0, 0]}>
           <Wheel
             selectedId={selectedId}
             onSelect={onSelect}
