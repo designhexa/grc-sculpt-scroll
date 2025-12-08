@@ -304,7 +304,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   });
 
   useEffect(() => {
-    controlsRef.current.target.set(4, 0, 0); // pivot wheel
+    controlsRef.current.target.set(PIVOT_WORLD_X, 0, 0);
     controlsRef.current.update();
   }, []);
 
@@ -330,25 +330,19 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Camera — placed to the right; pivot at PIVOT_WORLD_X will therefore appear near right screen edge */}
-      <PerspectiveCamera makeDefault position={[18, 3, 10]} />
+      <PerspectiveCamera 
+        makeDefault 
+        position={[22, 6, 14]} 
+        fov={40}
+      />
 
       <OrbitControls
         ref={controlsRef}
-        enableDamping
-        dampingFactor={0.06}
-
         enablePan={false}
-
-        // ⛔ BATAS HORIZONTAL – pivot selalu di kanan layar
-        minAzimuthAngle={-0.05}
-        maxAzimuthAngle={0.3}
-
-        // ⛔ BATAS VERTIKAL
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 1.4}
-
-        minDistance={8}
-        maxDistance={22}
+        enableRotate={false}   // ⛔ matikan rotasi kamera
+        enableZoom={true}
+        minDistance={10}
+        maxDistance={25}
       />
 
       <Environment preset="warehouse" background={false} />
@@ -368,6 +362,26 @@ export default function FilmRollWheel() {
     setSelectedId(id);
     if (id) setIsAutoPlaying(false);
   };
+
+  const isDragging = useRef(false);
+const lastX = useRef(0);
+
+const onPointerDown = (e) => {
+  isDragging.current = true;
+  lastX.current = e.clientX;
+};
+
+const onPointerUp = () => {
+  isDragging.current = false;
+};
+
+const onPointerMove = (e) => {
+  if (!isDragging.current) return;
+
+  const delta = (e.clientX - lastX.current) * 0.01;
+  setRotation(r => r + delta);
+  lastX.current = e.clientX;
+};
 
   return (
     <div className="relative w-full h-screen bg-background overflow-hidden">
@@ -413,11 +427,13 @@ export default function FilmRollWheel() {
         </div>
       )}
 
-      {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas>
-
+          <Canvas
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            onPointerMove={onPointerMove}
+          >
             <Scene
               selectedId={selectedId}
               onSelect={handleSelect}
@@ -426,6 +442,7 @@ export default function FilmRollWheel() {
           </Canvas>
         </Suspense>
       </div>
+
     </div>
   );
 }
