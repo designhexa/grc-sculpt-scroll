@@ -124,7 +124,7 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const gearOuterRadius = 1.6;
 
   return (
-    <group ref={wheelRef} position={[3.2, 0, 0]}>
+    <group ref={wheelRef} position={[-3, 0, 0]}>
       {/* Center gear hub */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
         {/* Main gear body */}
@@ -343,7 +343,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Kamera geser ke kanan (40:60 layout enforcement) */}
-      <PerspectiveCamera makeDefault position={[6.5, 2.2, 12]} />
+      <PerspectiveCamera makeDefault position={[10, 2.5, 12]} />
 
       {/* Orbit Controls dengan ref untuk update target */}
       <OrbitControls
@@ -354,8 +354,14 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         zoomSpeed={0.8}
         minDistance={8}
         maxDistance={25}
+
+        // ⛔ batasi pergerakan horizontal
+        minAzimuthAngle={-Math.PI / 2}  
+        maxAzimuthAngle={Math.PI / 12}
+
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
+        enablePan={false}
       />
     </>
   );
