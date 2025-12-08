@@ -10,17 +10,21 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
-/* ------------------------------------------------------------------
-  CONFIG / CONSTANTS
--------------------------------------------------------------------*/
-const PIVOT_WORLD_X = 6; // world X coordinate where pivot sits (we will project this near screen-right)
-const CAMERA_BASE_POS: [number, number, number] = [18, 3, 10]; // camera local position inside cameraGroup
-const CAMERA_GROUP_OFFSET_X = -7.5; // negative moves cameraGroup left, making pivot appear right on screen
+/* ===========================================================
+   CONFIG / CONSTANTS
+   - PIVOT_WORLD_X: pivot world X where wheel center sits
+   - CAMERA_GROUP_OFFSET_X: shift cameraGroup so pivot projects to right of screen
+   - CAMERA_BASE_POS: camera's local position inside cameraGroup
+   - WHEEL_RADIUS: visual radius of wheel
+   =========================================================== */
+const PIVOT_WORLD_X = 6;
+const CAMERA_GROUP_OFFSET_X = 8.0; // tweak this to move pivot projection more/less to the right
+const CAMERA_BASE_POS: [number, number, number] = [12, 2.6, 9]; // local camera position (closer view)
 const WHEEL_RADIUS = 6;
 
-/* ------------------------------------------------------------------
-  DATA
--------------------------------------------------------------------*/
+/* ===========================================================
+   Data: ornament descriptions (sample)
+   =========================================================== */
 interface OrnamentData {
   id: number;
   name: string;
@@ -48,9 +52,9 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   },
 }));
 
-/* ------------------------------------------------------------------
-  Card (single ornament) component
--------------------------------------------------------------------*/
+/* ===========================================================
+   Card component: individual ornament visual
+   =========================================================== */
 interface CardProps {
   data: OrnamentData;
   angle: number;
@@ -71,7 +75,7 @@ function Card({
   const meshRef = useRef<THREE.Mesh | null>(null);
   const texture = useTexture(data.texture);
 
-  // ensure wrapping (if you plan to repeat)
+  // Ensure texture wrapping (safe)
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
@@ -81,7 +85,7 @@ function Card({
 
   return (
     <group position={[x, 0, z]} rotation={[0, totalAngle, 0]}>
-      {/* Back plate */}
+      {/* Back plate (shadow / frame) */}
       <mesh position={[0, 0, -0.08]}>
         <boxGeometry args={[3.6, 2.6, 0.04]} />
         <meshStandardMaterial
@@ -109,28 +113,20 @@ function Card({
         />
       </mesh>
 
-      {/* Label using Html from drei */}
-      <Html
-        position={[0, -1.6, 0.1]}
-        center
-        distanceFactor={8}
-        style={{ pointerEvents: "none" }}
-      >
+      {/* Html label */}
+      <Html position={[0, -1.6, 0.1]} center distanceFactor={8} style={{ pointerEvents: "none" }}>
         <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-md border border-primary/30 whitespace-nowrap">
-          <span className="text-xs font-bold text-primary uppercase tracking-wider">
-            ORN. {data.id}
-          </span>
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">ORN. {data.id}</span>
         </div>
       </Html>
     </group>
   );
 }
 
-/* ------------------------------------------------------------------
-  WheelWithGear - wheel visuals and cards
-  - NOTE: This component is *child* of pivot group; wheel is shifted LEFT by -radius
-    so pivot (parent) sits at the right-edge of wheel.
--------------------------------------------------------------------*/
+/* ===========================================================
+   WheelWithGear: wheel visuals (child of pivot)
+   - Wheel is shifted left by -radius so pivot (parent) is the right-edge
+   =========================================================== */
 function WheelWithGear({
   selectedId,
   onSelect,
@@ -150,7 +146,7 @@ function WheelWithGear({
 
   return (
     <group position={[-radius, 0, 0]}>
-      {/* center gear which rotates with `rotation` */}
+      {/* central gear that visually rotates */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
         <mesh>
           <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
@@ -160,11 +156,7 @@ function WheelWithGear({
         {Array.from({ length: gearTeeth }).map((_, i) => {
           const t = (i / gearTeeth) * Math.PI * 2;
           return (
-            <mesh
-              key={i}
-              position={[Math.cos(t) * gearInnerRadius, 0, Math.sin(t) * gearInnerRadius]}
-              rotation={[0, -t, 0]}
-            >
+            <mesh key={i} position={[Math.cos(t) * gearInnerRadius, 0, Math.sin(t) * gearInnerRadius]} rotation={[0, -t, 0]}>
               <boxGeometry args={[0.4, 0.35, 0.25]} />
               <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
             </mesh>
@@ -182,7 +174,7 @@ function WheelWithGear({
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* connecting rods (simplified) */}
+      {/* connecting rods */}
       {Array.from({ length: cardCount }).map((_, i) => {
         const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
         const innerX = Math.sin(rodAngle) * gearOuterRadius;
@@ -217,53 +209,45 @@ function WheelWithGear({
   );
 }
 
-/* ------------------------------------------------------------------
-  Detail panel (HTML overlay)
--------------------------------------------------------------------*/
-function DetailPanel({
-  data,
-  onClose,
-}: {
-  data: OrnamentData | null;
-  onClose: () => void;
-}) {
+/* ===========================================================
+   Detail panel (HTML)
+   =========================================================== */
+function DetailPanel({ data, onClose }: { data: OrnamentData | null; onClose: () => void; }) {
   if (!data) return null;
 
   return (
     <div className="absolute left-4 md:left-6 top-24 bottom-24 w-72 md:w-80 bg-background/95 backdrop-blur-xl border-2 border-primary/30 rounded-2xl shadow-2xl overflow-hidden z-30 animate-fade-in">
       <div className="h-full flex flex-col">
+        {/* header */}
         <div className="p-4 md:p-6 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">
-                {data.name}
-              </h2>
+              <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">{data.name}</h2>
             </div>
 
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
-            >
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors">
               <span className="text-foreground text-lg">×</span>
             </button>
           </div>
         </div>
 
+        {/* image */}
         <div className="p-4">
           <div className="aspect-video rounded-xl overflow-hidden border border-primary/20">
             <img src={data.texture} alt={data.name} className="w-full h-full object-cover" />
           </div>
         </div>
 
+        {/* description */}
         <div className="px-4 md:px-6 pb-4">
           <p className="text-sm text-muted-foreground leading-relaxed">{data.description}</p>
         </div>
 
+        {/* specs */}
         <div className="flex-1 px-4 md:px-6 pb-6 overflow-auto">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-accent rounded-full" />
-            Spesifikasi
+            <div className="w-1.5 h-1.5 bg-accent rounded-full" /> Spesifikasi
           </h3>
           <div className="space-y-3">
             {Object.entries(data.specs).map(([key, value]) => (
@@ -281,9 +265,9 @@ function DetailPanel({
   );
 }
 
-/* ------------------------------------------------------------------
-  Loading fallback
--------------------------------------------------------------------*/
+/* ===========================================================
+   Loading fallback
+   =========================================================== */
 function LoadingFallback() {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-background">
@@ -295,13 +279,12 @@ function LoadingFallback() {
   );
 }
 
-/* ------------------------------------------------------------------
-  Scene component
-  IMPORTANT:
-  - pivotRef is world pivot (at PIVOT_WORLD_X)
-  - cameraGroup shifts camera LEFT so pivot projects near screen-right
-  - OrbitControls target is set to the pivot world position
--------------------------------------------------------------------*/
+/* ===========================================================
+   Scene component - cameraGroup trick + pivot at world X
+   - cameraGroup is moved RIGHT in world space so the pivot appears at right edge
+   - orbit controls target is set to pivot world coordinates
+   - wheel auto-rotate uses local `rotation` passed to WheelWithGear
+   =========================================================== */
 function Scene({
   selectedId,
   onSelect,
@@ -312,25 +295,19 @@ function Scene({
   isAutoPlaying: boolean;
 }) {
   const pivotRef = useRef<THREE.Group | null>(null);
-
-  // camera group trick
   const cameraGroupRef = useRef<THREE.Group | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
 
   const [rotation, setRotation] = useState(0);
 
-  // auto rotate wheel by updating `rotation` used by WheelWithGear
   useFrame((_, delta) => {
-    if (isAutoPlaying) {
-      setRotation((r) => r + delta * 0.15);
-    }
+    if (isAutoPlaying) setRotation((r) => r + delta * 0.15);
   });
 
-  // when controls mount, ensure they target pivot world pos
   useEffect(() => {
     if (!controlsRef.current) return;
-    // set target = pivot world coordinates
+    // Target pivot world position explicitly
     controlsRef.current.target.set(PIVOT_WORLD_X, 0, 0);
     controlsRef.current.update();
   }, []);
@@ -343,40 +320,36 @@ function Scene({
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, 10, 5]} intensity={1.2} color="#fff8e7" />
 
-      {/* Pivot: world-space pivot located at PIVOT_WORLD_X */}
+      {/* Pivot group at fixed world X -- this is the wheel center */}
       <group ref={pivotRef} position={[PIVOT_WORLD_X, 0, 0]}>
         <WheelWithGear selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
       </group>
 
-      {/* ground */}
+      {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
-        <planeGeometry args={[80, 80]} />
+        <planeGeometry args={[120, 120]} />
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
       </mesh>
 
-      {/* === Camera group trick: move the entire camera group left so pivot projects to right === */}
+      {/* Camera group trick: move cameraGroup to right (positive X) -> pivot will project near screen right */}
       <group ref={cameraGroupRef} position={[CAMERA_GROUP_OFFSET_X, 0, 0]}>
-        <PerspectiveCamera
-          ref={cameraRef}
-          makeDefault
-          position={CAMERA_BASE_POS}
-        />
+        <PerspectiveCamera ref={cameraRef} makeDefault position={CAMERA_BASE_POS} />
       </group>
 
-      {/* OrbitControls use default camera (PerspectiveCamera with makeDefault) */}
+      {/* Orbit controls operate on the default camera */}
       <OrbitControls
         ref={controlsRef}
         enableDamping
         dampingFactor={0.06}
-        enablePan={false}
+        enablePan={false} // disallow panning so pivot projection doesn't shift
         rotateSpeed={0.5}
-        zoomSpeed={0.8}
-        minDistance={8}
+        zoomSpeed={0.9}
+        minDistance={5.5} // allow close view
         maxDistance={25}
-        minAzimuthAngle={-0.45}
-        maxAzimuthAngle={0.3}
+        minAzimuthAngle={-0.7}
+        maxAzimuthAngle={0.7}
         minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 1.6}
+        maxPolarAngle={Math.PI / 1.5}
       />
 
       <Environment preset="warehouse" background={false} />
@@ -384,9 +357,9 @@ function Scene({
   );
 }
 
-/* ------------------------------------------------------------------
-  Main page component
--------------------------------------------------------------------*/
+/* ===========================================================
+   Main page component: includes header, controls, canvas
+   =========================================================== */
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -400,10 +373,10 @@ export default function FilmRollWheel() {
 
   return (
     <div className="relative w-full h-screen bg-background overflow-hidden">
-      {/* background gradient */}
+      {/* subtle background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 pointer-events-none z-0" />
 
-      {/* header */}
+      {/* Header */}
       <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-background/90 to-transparent backdrop-blur-sm z-20">
         <div className="h-full px-4 md:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -411,21 +384,23 @@ export default function FilmRollWheel() {
             <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">GRC Ornaments</h1>
           </div>
 
-          <button
-            onClick={() => setIsAutoPlaying((s) => !s)}
-            className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all ${
-              isAutoPlaying ? "bg-accent/20 border-accent text-accent" : "bg-primary/10 border-primary/30 text-foreground"
-            }`}
-          >
-            <span className="text-xs md:text-sm font-medium uppercase tracking-wide">{isAutoPlaying ? "⏸ Pause" : "▶ Play"}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAutoPlaying((s) => !s)}
+              className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all ${
+                isAutoPlaying ? "bg-accent/20 border-accent text-accent" : "bg-primary/10 border-primary/30 text-foreground"
+              }`}
+            >
+              <span className="text-xs md:text-sm font-medium uppercase tracking-wide">{isAutoPlaying ? "⏸ Pause" : "▶ Play"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* detail panel */}
+      {/* Detail panel (left side) */}
       <DetailPanel data={selectedData} onClose={() => setSelectedId(null)} />
 
-      {/* info bubble */}
+      {/* instruction bubble bottom center */}
       {!selectedId && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
           <div className="bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 rounded-full border border-primary/30 shadow-lg">
@@ -437,7 +412,7 @@ export default function FilmRollWheel() {
         </div>
       )}
 
-      {/* 3D canvas */}
+      {/* Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
           <Canvas>
