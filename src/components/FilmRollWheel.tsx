@@ -304,9 +304,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   });
 
   useEffect(() => {
-    // set OrbitControls target to pivot (so pivot stays fixed in view)
-    controlsRef.current?.target.set(PIVOT_WORLD_X, 0, 0);
-    controlsRef.current?.update();
+    controlsRef.current.target.set(0, 0, 0); // pivot wheel
+    controlsRef.current.update();
   }, []);
 
   return (
@@ -331,23 +330,25 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Camera — placed to the right; pivot at PIVOT_WORLD_X will therefore appear near right screen edge */}
-      <PerspectiveCamera makeDefault position={CAMERA_POS} />
+      <PerspectiveCamera makeDefault position={[12, 2.5, 10]} />
 
       <OrbitControls
         ref={controlsRef}
         enableDamping
         dampingFactor={0.06}
-        rotateSpeed={0.5}
-        zoomSpeed={0.8}
-        minDistance={8}
-        maxDistance={25}
 
-        // --- lock controls so user cannot pan or rotate pivot off right screen-line ---
-        enablePan={false}              // no panning (move)
-        minAzimuthAngle={-Math.PI / 2} // left-most viewing angle
-        maxAzimuthAngle={Math.PI / 12} // small right rotation allowed but NOT enough to reveal full wheel
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 1.8}
+        enablePan={false}
+
+        // ⛔ BATAS HORIZONTAL – pivot selalu di kanan layar
+        minAzimuthAngle={-0.05}
+        maxAzimuthAngle={0.3}
+
+        // ⛔ BATAS VERTIKAL
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 1.4}
+
+        minDistance={8}
+        maxDistance={22}
       />
 
       <Environment preset="warehouse" background={false} />
