@@ -49,10 +49,22 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  const rotationY = totalAngle + Math.PI;
+  // Face outward - rotation points away from center
+  const rotationY = totalAngle;
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
+      {/* Card frame (behind) */}
+      <mesh position={[0, 0, -0.08]}>
+        <boxGeometry args={[3.6, 2.6, 0.04]} />
+        <meshStandardMaterial
+          color={isSelected ? "#D4A574" : "#8B7355"}
+          metalness={0.5}
+          roughness={0.3}
+        />
+      </mesh>
+
+      {/* Main card - landscape orientation */}
       <mesh
         ref={meshRef}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -60,7 +72,7 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
           onClick();
         }}
       >
-        <boxGeometry args={[2.2, 3, 0.12]} />
+        <boxGeometry args={[3.4, 2.4, 0.12]} />
         <meshStandardMaterial
           map={texture}
           metalness={0.2}
@@ -69,20 +81,10 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
           emissiveIntensity={isSelected ? 0.4 : 0}
         />
       </mesh>
-      
-      {/* Card frame */}
-      <mesh position={[0, 0, -0.07]}>
-        <boxGeometry args={[2.4, 3.2, 0.04]} />
-        <meshStandardMaterial
-          color={isSelected ? "#D4A574" : "#8B7355"}
-          metalness={0.5}
-          roughness={0.3}
-        />
-      </mesh>
 
       {/* Label */}
       <Html
-        position={[0, -1.9, 0.1]}
+        position={[0, -1.6, 0.1]}
         center
         distanceFactor={8}
         style={{ pointerEvents: "none" }}
@@ -116,55 +118,80 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
     }
   });
 
-  const spokeCount = cardCount;
+  const gearTeeth = 24;
+  const gearInnerRadius = 1.2;
+  const gearOuterRadius = 1.6;
 
   return (
     <group ref={wheelRef}>
-      {/* Center hub */}
-      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.4, 0.4, 0.25, 32]} />
-        <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
-      </mesh>
+      {/* Center gear hub */}
+      <group rotation={[Math.PI / 2, 0, rotation]}>
+        {/* Main gear body */}
+        <mesh>
+          <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
+          <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.3} />
+        </mesh>
+        
+        {/* Gear teeth */}
+        {Array.from({ length: gearTeeth }, (_, i) => {
+          const toothAngle = (i / gearTeeth) * Math.PI * 2;
+          const toothX = Math.cos(toothAngle) * gearInnerRadius;
+          const toothZ = Math.sin(toothAngle) * gearInnerRadius;
+          return (
+            <mesh
+              key={i}
+              position={[toothX, 0, toothZ]}
+              rotation={[0, -toothAngle, 0]}
+            >
+              <boxGeometry args={[0.4, 0.35, 0.25]} />
+              <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
+            </mesh>
+          );
+        })}
+        
+        {/* Center hole detail */}
+        <mesh position={[0, 0.21, 0]}>
+          <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
+          <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, -0.21, 0]}>
+          <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
+          <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
+        </mesh>
+      </group>
 
-      {/* Top ring */}
-      <mesh position={[0, 1.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius, 0.06, 8, 64]} />
+      {/* Outer ring - top */}
+      <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* Bottom ring */}
-      <mesh position={[0, -1.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius, 0.06, 8, 64]} />
+      {/* Outer ring - bottom */}
+      <mesh position={[0, -1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* Spokes */}
-      {Array.from({ length: spokeCount }, (_, i) => {
-        const spokeAngle = (i / spokeCount) * Math.PI * 2 + rotation;
-        const spokeX = Math.sin(spokeAngle) * radius;
-        const spokeZ = Math.cos(spokeAngle) * radius;
+      {/* Connecting rods from gear to cards */}
+      {Array.from({ length: cardCount }, (_, i) => {
+        const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
+        const innerX = Math.sin(rodAngle) * gearOuterRadius;
+        const innerZ = Math.cos(rodAngle) * gearOuterRadius;
+        const outerX = Math.sin(rodAngle) * (radius - 0.5);
+        const outerZ = Math.cos(rodAngle) * (radius - 0.5);
+        const midX = (innerX + outerX) / 2;
+        const midZ = (innerZ + outerZ) / 2;
+        const rodLength = Math.sqrt(Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2));
+        
         return (
           <group key={i}>
-            {/* Top spoke */}
+            {/* Horizontal rod */}
             <mesh
-              position={[spokeX / 2, 1.8, spokeZ / 2]}
-              rotation={[0, -spokeAngle, 0]}
+              position={[midX, 0, midZ]}
+              rotation={[0, -rodAngle, 0]}
             >
-              <boxGeometry args={[radius, 0.04, 0.04]} />
-              <meshStandardMaterial color="#6B5B4F" metalness={0.4} roughness={0.5} />
-            </mesh>
-            {/* Bottom spoke */}
-            <mesh
-              position={[spokeX / 2, -1.8, spokeZ / 2]}
-              rotation={[0, -spokeAngle, 0]}
-            >
-              <boxGeometry args={[radius, 0.04, 0.04]} />
-              <meshStandardMaterial color="#6B5B4F" metalness={0.4} roughness={0.5} />
-            </mesh>
-            {/* Vertical support */}
-            <mesh position={[spokeX, 0, spokeZ]}>
-              <boxGeometry args={[0.04, 3.6, 0.04]} />
-              <meshStandardMaterial color="#6B5B4F" metalness={0.4} roughness={0.5} />
+              <boxGeometry args={[rodLength, 0.06, 0.06]} />
+              <meshStandardMaterial color="#6B5B4F" metalness={0.5} roughness={0.4} />
             </mesh>
           </group>
         );
