@@ -1,18 +1,8 @@
 import { useRef, useEffect, useState, Suspense } from "react";
-import {
-  OrbitControls,
-  PerspectiveCamera,
-  Environment,
-  Html,
-  useTexture,
-} from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
+import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
-
-/* ------------------------------------------------------------------
- * DATA
- * ------------------------------------------------------------------ */
 
 interface OrnamentData {
   id: number;
@@ -31,7 +21,7 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Ornamen ${i + 1}`,
   texture: grcOrnament,
-  description: `Ornamen GRC premium dengan desain klasik yang elegan.`,
+  description: `Ornamen GRC premium dengan desain klasik yang elegan. Cocok untuk dekorasi eksterior maupun interior bangunan.`,
   specs: {
     material: "Glass Fiber Reinforced Concrete",
     dimensions: `${60 + i * 5}cm x ${40 + i * 3}cm x ${8 + i}cm`,
@@ -40,97 +30,127 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   },
 }));
 
-/* ------------------------------------------------------------------
- * CARD COMPONENT
- * ------------------------------------------------------------------ */
+interface CardProps {
+  data: OrnamentData;
+  angle: number;
+  radius: number;
+  isSelected: boolean;
+  onClick: () => void;
+  wheelRotation: number;
+}
 
-function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
-  const meshRef = useRef(null);
+function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(data.texture);
 
+  // ensure texture wrapping if needed
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
+  // Face outward - rotation points away from center
+  const rotationY = totalAngle;
 
   return (
-    <group position={[x, 0, z]} rotation={[0, totalAngle, 0]}>
-      {/* Shadow panel */}
-      <mesh position={[6.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color="#1a1510" />
+    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
+      {/* Card frame (behind) */}
+      <mesh position={[0, 0, -0.08]}>
+        <boxGeometry args={[3.6, 2.6, 0.04]} />
+        <meshStandardMaterial
+          color={isSelected ? "#D4A574" : "#8B7355"}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
 
-      {/* Card texture */}
+      {/* Main card - landscape orientation */}
       <mesh
         ref={meshRef}
-        onClick={(e) => {
+        onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           onClick();
         }}
       >
         <boxGeometry args={[3.4, 2.4, 0.12]} />
-        <meshStandardMaterial map={texture} />
+        <meshStandardMaterial
+          map={texture}
+          metalness={0.2}
+          roughness={0.6}
+          emissive={isSelected ? "#D4A574" : "#000000"}
+          emissiveIntensity={isSelected ? 0.4 : 0}
+        />
       </mesh>
 
       {/* Label */}
-      <Html position={[0, -1.6, 0.1]} center distanceFactor={8}>
-        <div className="backdrop-blur-md bg-white/30 text-black px-3 py-1 rounded-md border border-white/50">
-          ORN. {data.id}
+      <Html
+        position={[0, -1.6, 0.1]}
+        center
+        distanceFactor={8}
+        style={{ pointerEvents: "none" }}
+      >
+        <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-md border border-primary/30 whitespace-nowrap">
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">
+            ORN. {data.id}
+          </span>
         </div>
       </Html>
     </group>
   );
 }
 
-/* ------------------------------------------------------------------
- * GEARED WHEEL (FULL MEKANISME)
- * ------------------------------------------------------------------ */
+interface WheelProps {
+  selectedId: number | null;
+  onSelect: (id: number | null) => void;
+  isAutoPlaying: boolean;
+}
 
-function WheelWithGear({ selectedId, onSelect, rotation }) {
-  const radius = 4.2;
+function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
+  const wheelRef = useRef<THREE.Group>(null);
+  const [rotation, setRotation] = useState(0);
+  const radius = 6;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
-  const gearInnerRadius = 1.2;
-  const gearOuterRadius = 2.2;
+  useFrame((_, delta) => {
+    if (isAutoPlaying && !selectedId) {
+      setRotation((prev) => prev + delta * 0.15);
+    }
+  });
+
   const gearTeeth = 24;
+  const gearInnerRadius = 1.2;
+  const gearOuterRadius = 1.6;
 
   return (
-    <group position={[3.2, 0, 0]}>
-      {/* Central rotating gear */}
+    <group ref={wheelRef} position={[3.2, 0, 0]}>
+      {/* Center gear hub */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
+        {/* Main gear body */}
         <mesh>
           <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
           <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.3} />
         </mesh>
-
-        {/* Teeth */}
+        
+        {/* Gear teeth */}
         {Array.from({ length: gearTeeth }, (_, i) => {
-          const angle = (i / gearTeeth) * Math.PI * 2;
+          const toothAngle = (i / gearTeeth) * Math.PI * 2;
+          const toothX = Math.cos(toothAngle) * gearInnerRadius;
+          const toothZ = Math.sin(toothAngle) * gearInnerRadius;
           return (
             <mesh
               key={i}
-              position={[
-                Math.cos(angle) * gearInnerRadius,
-                0,
-                Math.sin(angle) * gearInnerRadius,
-              ]}
-              rotation={[0, -angle, 0]}
+              position={[toothX, 0, toothZ]}
+              rotation={[0, -toothAngle, 0]}
             >
               <boxGeometry args={[0.4, 0.35, 0.25]} />
-              <meshStandardMaterial
-                color="#5C4A3D"
-                metalness={0.6}
-                roughness={0.4}
-              />
+              <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
             </mesh>
           );
         })}
-
-        {/* Center hole */}
+        
+        {/* Center hole detail */}
         <mesh position={[0, 0.21, 0]}>
           <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
           <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
@@ -141,65 +161,68 @@ function WheelWithGear({ selectedId, onSelect, rotation }) {
         </mesh>
       </group>
 
-      {/* Rings */}
+      {/* Outer ring - top */}
       <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
+
+      {/* Outer ring - bottom */}
       <mesh position={[0, -1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* Rods connecting gear → cards */}
+      {/* Connecting rods from gear to cards */}
       {Array.from({ length: cardCount }, (_, i) => {
         const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
-
         const innerX = Math.sin(rodAngle) * gearOuterRadius;
         const innerZ = Math.cos(rodAngle) * gearOuterRadius;
-
         const outerX = Math.sin(rodAngle) * (radius - 0.5);
         const outerZ = Math.cos(rodAngle) * (radius - 0.5);
-
         const midX = (innerX + outerX) / 2;
         const midZ = (innerZ + outerZ) / 2;
-        const rodLength = Math.sqrt(
-          Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2)
-        );
-
+        const rodLength = Math.sqrt(Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2));
+        
         return (
-          <mesh key={i} position={[midX, 0, midZ]} rotation={[0, -rodAngle, 0]}>
-            <boxGeometry args={[rodLength, 0.06, 0.06]} />
-            <meshStandardMaterial
-              color="#6B5B4F"
-              metalness={0.5}
-              roughness={0.4}
-            />
-          </mesh>
+          <group key={i}>
+            {/* Horizontal rod */}
+            <mesh
+              position={[midX, 0, midZ]}
+              rotation={[0, -rodAngle, 0]}
+            >
+              <boxGeometry args={[rodLength, 0.06, 0.06]} />
+              <meshStandardMaterial color="#6B5B4F" metalness={0.5} roughness={0.4} />
+            </mesh>
+          </group>
         );
       })}
 
       {/* Cards */}
-      {ornamentData.map((data, index) => (
-        <Card
-          key={data.id}
-          data={data}
-          angle={index * angleStep}
-          radius={radius}
-          wheelRotation={rotation}
-          isSelected={selectedId === data.id}
-          onClick={() => onSelect(selectedId === data.id ? null : data.id)}
-        />
-      ))}
+      {ornamentData.map((data, index) => {
+        const cardAngle = index * angleStep;
+        return (
+          <Card
+            key={data.id}
+            data={data}
+            angle={cardAngle}
+            radius={radius}
+            isSelected={selectedId === data.id}
+            onClick={() => onSelect(selectedId === data.id ? null : data.id)}
+            wheelRotation={rotation}
+          />
+        );
+      })}
     </group>
   );
 }
 
-/* ------------------------------------------------------------------
- * DETAIL PANEL
- * ------------------------------------------------------------------ */
+interface DetailPanelProps {
+  data: OrnamentData | null;
+  onClose: () => void;
+}
 
-function DetailPanel({ data, onClose }) {
+function DetailPanel({ data, onClose }: DetailPanelProps) {
   if (!data) return null;
 
   return (
@@ -208,15 +231,17 @@ function DetailPanel({ data, onClose }) {
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-transparent">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">
-              {data.name}
-            </h2>
-
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+              <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">
+                {data.name}
+              </h2>
+            </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
             >
-              <span className="text-lg">×</span>
+              <span className="text-foreground text-lg">×</span>
             </button>
           </div>
         </div>
@@ -241,13 +266,17 @@ function DetailPanel({ data, onClose }) {
 
         {/* Specifications */}
         <div className="flex-1 px-4 md:px-6 pb-6 overflow-auto">
-          <h3 className="text-sm font-bold uppercase tracking-wider mb-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-accent rounded-full" />
             Spesifikasi
           </h3>
           <div className="space-y-3">
             {Object.entries(data.specs).map(([key, value]) => (
-              <div key={key} className="flex justify-between py-2 border-b border-primary/10">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              <div
+                key={key}
+                className="flex justify-between items-center py-2 border-b border-primary/10"
+              >
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
                   {key === "material"
                     ? "Material"
                     : key === "dimensions"
@@ -256,7 +285,7 @@ function DetailPanel({ data, onClose }) {
                     ? "Berat"
                     : "Finishing"}
                 </span>
-                <span className="text-sm font-medium max-w-[50%] text-right">
+                <span className="text-sm font-medium text-foreground text-right max-w-[50%]">
                   {value}
                 </span>
               </div>
@@ -267,10 +296,6 @@ function DetailPanel({ data, onClose }) {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------
- * LOADING FALLBACK
- * ------------------------------------------------------------------ */
 
 function LoadingFallback() {
   return (
@@ -283,56 +308,64 @@ function LoadingFallback() {
   );
 }
 
-/* ------------------------------------------------------------------
- * 3D SCENE
- * ------------------------------------------------------------------ */
-
-function Scene({ selectedId, onSelect, isAutoPlaying }) {
-  const pivotRef = useRef();
-  const controlsRef = useRef();
-
-  const [rotation, setRotation] = useState(0);
-
-  useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r + delta * 0.15);
-  });
+function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
+  const controlsRef = useRef<any>(null);
 
   useEffect(() => {
-    controlsRef.current?.target.set(6, 0, 0);
-    controlsRef.current?.update();
+    // Set fokus kamera ke posisi wheel (40:60 layout)
+    if (controlsRef.current) {
+      controlsRef.current.target.set(3.2, 0, 0);
+      controlsRef.current.update();
+    }
   }, []);
 
   return (
     <>
       <color attach="background" args={["#1a1510"]} />
-      <PerspectiveCamera makeDefault position={[14, 3, 16]} />
+      <fog attach="fog" args={["#1a1510", 12, 30]} />
 
-      {/* Pivot */}
-      <group ref={pivotRef} position={[6, 0, 0]}>
-        <WheelWithGear
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={rotation}
-        />
+      {/* Lighting */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={1.2} color="#fff8e7" />
+      <pointLight position={[-10, -5, -10]} intensity={0.5} color="#D4A574" />
+      <pointLight position={[0, 8, 0]} intensity={0.3} color="#ffffff" />
+      <spotLight position={[0, 12, 12]} angle={0.3} penumbra={0.5} intensity={0.8} color="#fff5e6" />
+
+      <Environment preset="warehouse" background={false} />
+
+      {/* Wheel wrapper with pivot logic */}
+      <group ref={pivotRef}>
+        {/* Geser wheel ke kanan, tetapi pivot tetap 0,0,0 */}
+        <group ref={wheelRef} position={[3.2, 0, 0]}>
+          <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
+        </group>
       </group>
 
+
+      {/* Ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
+      </mesh>
+
+      {/* Kamera geser ke kanan (40:60 layout enforcement) */}
+      <PerspectiveCamera makeDefault position={[6.5, 2.2, 12]} />
+
+      {/* Orbit Controls dengan ref untuk update target */}
       <OrbitControls
-        ref={controlsRef}
         enableDamping
         dampingFactor={0.05}
+        rotateSpeed={0.5}
+        zoomSpeed={0.8}
         minDistance={8}
         maxDistance={25}
+        maxPolarAngle={Math.PI / 1.8}
+        minPolarAngle={Math.PI / 6}
+        target={[0, 0, 0]}  // ⬅️ Fokus ke pivotGroup, bukan posisi wheel
       />
-
-      <ambientLight intensity={0.6} />
-      <Environment preset="studio" />
     </>
   );
 }
-
-/* ------------------------------------------------------------------
- * MAIN COMPONENT
- * ------------------------------------------------------------------ */
 
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -349,13 +382,18 @@ export default function FilmRollWheel() {
 
   return (
     <div className="relative w-full h-screen bg-background overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 pointer-events-none z-0" />
+
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-background/90 to-transparent backdrop-blur-sm z-20">
         <div className="h-full px-4 md:px-6 flex items-center justify-between">
-          <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">
-            GRC Ornaments
-          </h1>
-
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-lg" />
+            <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">
+              GRC Ornaments
+            </h1>
+          </div>
           <button
             onClick={() => setIsAutoPlaying(!isAutoPlaying)}
             className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all ${
@@ -364,7 +402,7 @@ export default function FilmRollWheel() {
                 : "bg-primary/10 border-primary/30 text-foreground"
             }`}
           >
-            <span className="text-xs md:text-sm uppercase">
+            <span className="text-xs md:text-sm font-medium uppercase tracking-wide">
               {isAutoPlaying ? "⏸ Pause" : "▶ Play"}
             </span>
           </button>
@@ -374,21 +412,23 @@ export default function FilmRollWheel() {
       {/* Detail Panel */}
       <DetailPanel data={selectedData} onClose={() => setSelectedId(null)} />
 
-      {/* Instruction */}
+      {/* Instructions */}
       {!selectedId && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
           <div className="bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 rounded-full border border-primary/30 shadow-lg">
-            <p className="text-xs md:text-sm text-muted-foreground">
+            <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
               Klik ornamen untuk melihat detail
             </p>
           </div>
         </div>
       )}
 
-      {/* Canvas */}
+      {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
           <Canvas>
+
             <Scene
               selectedId={selectedId}
               onSelect={handleSelect}
