@@ -49,8 +49,8 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  // Face outward - rotation points away from center
-  const rotationY = totalAngle;
+  // Make card face outward (away from center)
+  const rotationY = totalAngle + Math.PI;
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
