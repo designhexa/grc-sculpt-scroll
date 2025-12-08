@@ -330,7 +330,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Camera — placed to the right; pivot at PIVOT_WORLD_X will therefore appear near right screen edge */}
-      <PerspectiveCamera makeDefault position={[12, 2.5, 10]} />
+      <PerspectiveCamera makeDefault position={[18, 3, 10]} />
 
       <OrbitControls
         ref={controlsRef}
