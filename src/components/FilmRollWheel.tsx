@@ -1,6 +1,6 @@
-import { useRef, useState, Suspense } from "react";
+import { useRef, useEffect } from "react";
+import { OrbitControls, PerspectiveCamera, Environment } from "@react-three/drei";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, useTexture, Html, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
@@ -309,14 +309,16 @@ function LoadingFallback() {
 }
 
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
-
   const controlsRef = useRef<any>(null);
 
-  // keep controls updated inside render loop
-  useFrame(() => {
-    if (controlsRef.current) controlsRef.current.update();
-  });
-  
+  useEffect(() => {
+    // Set fokus kamera ke posisi wheel (40:60 layout)
+    if (controlsRef.current) {
+      controlsRef.current.target.set(3.2, 0, 0);
+      controlsRef.current.update();
+    }
+  }, []);
+
   return (
     <>
       <color attach="background" args={["#1a1510"]} />
@@ -331,7 +333,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       <Environment preset="warehouse" background={false} />
 
-      {/* Wheel (positioned to right for 40:60 layout) */}
+      {/* Wheel */}
       <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
 
       {/* Ground */}
@@ -340,20 +342,21 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
       </mesh>
 
+      {/* Kamera geser ke kanan (40:60 layout enforcement) */}
+      <PerspectiveCamera makeDefault position={[6.5, 2.2, 12]} />
+
+      {/* Orbit Controls dengan ref untuk update target */}
       <OrbitControls
         ref={controlsRef}
-        makeDefault
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.06}
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         minDistance={8}
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
-        target={[3.2, 0, 0]}
       />
-
     </>
   );
 }
@@ -418,7 +421,7 @@ export default function FilmRollWheel() {
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas camera={{ position: [6.5, 2.4, 13.5], fov: 50 }}>
+          <Canvas>
 
             <Scene
               selectedId={selectedId}
