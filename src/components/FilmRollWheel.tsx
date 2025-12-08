@@ -283,7 +283,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   useEffect(() => {
     // Lock orbit focus ke wheel (bukan center scene)
     if (controlsRef.current) {
-      controlsRef.current.target.set(3.2, 0, 0);
+      controlsRef.current.target.set(6, 0, 0);
       controlsRef.current.update();
     }
   }, []);
@@ -327,7 +327,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Kamera geser ke kanan (untuk komposisi 40:60) */}
-      <PerspectiveCamera makeDefault position={[6.5, 2.2, 12]} />
+      <PerspectiveCamera makeDefault position={[8.5, 2.2, 12]} />
 
       {/* Orbit Controls */}
       <OrbitControls
