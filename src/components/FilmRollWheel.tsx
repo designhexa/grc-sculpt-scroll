@@ -49,8 +49,8 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  // Make card face outward (away from center)
-  const rotationY = totalAngle + Math.PI;
+  // Face outward - rotation points away from center
+  const rotationY = totalAngle;
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
@@ -161,15 +161,9 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </group>
 
       {/* Outer ring - top */}
-      {/* Film Strip Ring */}
-      <mesh rotation={[Math.PI / 2, 0, rotation]}>
-        <cylinderGeometry args={[radius, radius, 0.15, 64, 1, true]} />
-        <meshStandardMaterial
-          color="#6d5846"
-          metalness={0.4}
-          roughness={0.6}
-          side={THREE.DoubleSide}
-        />
+      <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, 0.08, 8, 64]} />
+        <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
       {/* Outer ring - bottom */}
