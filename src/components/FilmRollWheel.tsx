@@ -1,7 +1,16 @@
 // FilmRollWheelFull.tsx
-import React, { useRef, useEffect, useState, useCallback, forwardRef } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  forwardRef,
+  Suspense,
+} from "react";
+
 import * as THREE from "three";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
+
 import {
   OrbitControls,
   PerspectiveCamera,
@@ -9,7 +18,9 @@ import {
   Html,
   useTexture,
 } from "@react-three/drei";
+
 import grcOrnament from "@/assets/grc-ornament.jpg";
+
 
 /**
  * FULL IMPLEMENTATION
