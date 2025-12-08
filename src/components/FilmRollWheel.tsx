@@ -333,12 +333,14 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       {/* Environment for reflections */}
       <Environment preset="warehouse" />
 
-      {/* Wheel */}
-      <Wheel
-        selectedId={selectedId}
-        onSelect={onSelect}
-        isAutoPlaying={isAutoPlaying}
-      />
+      {/* Wheel shifted to the right */}
+      <group position={[3.2, 0, 0]} scale={[0.92, 0.92, 0.92]}>
+        <Wheel
+          selectedId={selectedId}
+          onSelect={onSelect}
+          isAutoPlaying={isAutoPlaying}
+        />
+      </group>
 
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
