@@ -308,6 +308,13 @@ function LoadingFallback() {
 }
 
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
+
+  const controlsRef = useRef(null);
+
+  useFrame(() => {
+    if (controlsRef.current) controlsRef.current.update();
+  });
+  
   return (
     <>
       <color attach="background" args={["#1a1510"]} />
@@ -333,6 +340,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       <OrbitControls
+        ref={controlsRef}
+        makeDefault
         enableDamping
         dampingFactor={0.05}
         rotateSpeed={0.5}
@@ -341,8 +350,9 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
-        target={[3.2, 0, 0]} // <-- satu-satunya offset lokasi wheel
+        target={[3.2, 0, 0]}
       />
+
     </>
   );
 }
