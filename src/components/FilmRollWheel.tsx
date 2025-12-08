@@ -43,6 +43,7 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
   const meshRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(data.texture);
 
+  // ensure texture wrapping if needed
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
@@ -123,7 +124,7 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const gearOuterRadius = 1.6;
 
   return (
-    <group ref={wheelRef}>
+    <group ref={wheelRef} position={[3.2, 0, 0]}>
       {/* Center gear hub */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
         {/* Main gear body */}
@@ -309,8 +310,9 @@ function LoadingFallback() {
 
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
-  const controlsRef = useRef(null);
+  const controlsRef = useRef<any>(null);
 
+  // keep controls updated inside render loop
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update();
   });
@@ -327,13 +329,12 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <pointLight position={[0, 8, 0]} intensity={0.3} color="#ffffff" />
       <spotLight position={[0, 12, 12]} angle={0.3} penumbra={0.5} intensity={0.8} color="#fff5e6" />
 
-      <Environment preset="warehouse" />
+      <Environment preset="warehouse" background={false} />
 
-      {/* Wheel (NO position shift here anymore) */}
-      <group scale={[0.92, 0.92, 0.92]}>
-        <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
-      </group>
+      {/* Wheel (positioned to right for 40:60 layout) */}
+      <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
 
+      {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
