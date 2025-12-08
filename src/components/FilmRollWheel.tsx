@@ -161,9 +161,15 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </group>
 
       {/* Outer ring - top */}
-      <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius, 0.08, 8, 64]} />
-        <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
+      {/* Film Strip Ring */}
+      <mesh rotation={[Math.PI / 2, 0, rotation]}>
+        <cylinderGeometry args={[radius, radius, 0.15, 64, 1, true]} />
+        <meshStandardMaterial
+          color="#6d5846"
+          metalness={0.4}
+          roughness={0.6}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* Outer ring - bottom */}
