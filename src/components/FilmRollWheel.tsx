@@ -17,6 +17,11 @@ interface OrnamentData {
   };
 }
 
+/* ---------- Constants to control layout ---------- */
+const PIVOT_WORLD_X = 6;      // world X coordinate that will act as "screen-right line" (pivot)
+const CAMERA_POS = [14, 3, 16]; // keep camera at right of pivot so pivot projects near right edge
+const WHEEL_RADIUS = 6;       // radius same as wheel code
+
 const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Ornamen ${i + 1}`,
@@ -106,51 +111,38 @@ interface WheelProps {
   isAutoPlaying: boolean;
 }
 
-function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
-  const wheelRef = useRef<THREE.Group>(null);
-  const [rotation, setRotation] = useState(0);
-  const radius = 6;
+// WheelWithGear: pivot is NOT here — this component assumes it's placed as child of pivot
+function WheelWithGear({ selectedId, onSelect, rotation }) {
+  const radius = WHEEL_RADIUS;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
-
-  useFrame((_, delta) => {
-    if (isAutoPlaying && !selectedId) {
-      setRotation((prev) => prev + delta * 0.15);
-    }
-  });
 
   const gearTeeth = 24;
   const gearInnerRadius = 1.2;
   const gearOuterRadius = 1.6;
 
+  // IMPORTANT: wheel itself is shifted LEFT by `radius` so that pivot (parent) sits at the right-edge of wheel.
   return (
-    <group ref={wheelRef} position={[-3, 0, 0]}>
-      {/* Center gear hub */}
+    <group position={[-radius, 0, 0] /* shift wheel left relative to pivot */}>
+      {/* Center gear hub - rotates around pivot because this group is child of pivot */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
-        {/* Main gear body */}
         <mesh>
           <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
           <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.3} />
         </mesh>
-        
-        {/* Gear teeth */}
+
         {Array.from({ length: gearTeeth }, (_, i) => {
           const toothAngle = (i / gearTeeth) * Math.PI * 2;
           const toothX = Math.cos(toothAngle) * gearInnerRadius;
           const toothZ = Math.sin(toothAngle) * gearInnerRadius;
           return (
-            <mesh
-              key={i}
-              position={[toothX, 0, toothZ]}
-              rotation={[0, -toothAngle, 0]}
-            >
+            <mesh key={i} position={[toothX, 0, toothZ]} rotation={[0, -toothAngle, 0]}>
               <boxGeometry args={[0.4, 0.35, 0.25]} />
               <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
             </mesh>
           );
         })}
-        
-        {/* Center hole detail */}
+
         <mesh position={[0, 0.21, 0]}>
           <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
           <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
@@ -161,19 +153,17 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         </mesh>
       </group>
 
-      {/* Outer ring - top */}
+      {/* Outer rings, rods, cards (the rest of your wheel visuals) */}
       <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
-
-      {/* Outer ring - bottom */}
       <mesh position={[0, -1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* Connecting rods from gear to cards */}
+      {/* rods */}
       {Array.from({ length: cardCount }, (_, i) => {
         const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
         const innerX = Math.sin(rodAngle) * gearOuterRadius;
@@ -182,37 +172,28 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         const outerZ = Math.cos(rodAngle) * (radius - 0.5);
         const midX = (innerX + outerX) / 2;
         const midZ = (innerZ + outerZ) / 2;
-        const rodLength = Math.sqrt(Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2));
-        
+        const rodLength = Math.hypot(outerX - innerX, outerZ - innerZ);
+
         return (
-          <group key={i}>
-            {/* Horizontal rod */}
-            <mesh
-              position={[midX, 0, midZ]}
-              rotation={[0, -rodAngle, 0]}
-            >
-              <boxGeometry args={[rodLength, 0.06, 0.06]} />
-              <meshStandardMaterial color="#6B5B4F" metalness={0.5} roughness={0.4} />
-            </mesh>
-          </group>
+          <mesh key={i} position={[midX, 0, midZ]} rotation={[0, -rodAngle, 0]}>
+            <boxGeometry args={[rodLength, 0.06, 0.06]} />
+            <meshStandardMaterial color="#6B5B4F" metalness={0.5} roughness={0.4} />
+          </mesh>
         );
       })}
 
       {/* Cards */}
-      {ornamentData.map((data, index) => {
-        const cardAngle = index * angleStep;
-        return (
-          <Card
-            key={data.id}
-            data={data}
-            angle={cardAngle}
-            radius={radius}
-            isSelected={selectedId === data.id}
-            onClick={() => onSelect(selectedId === data.id ? null : data.id)}
-            wheelRotation={rotation}
-          />
-        );
-      })}
+      {ornamentData.map((data, index) => (
+        <Card
+          key={data.id}
+          data={data}
+          angle={index * angleStep}
+          radius={radius}
+          isSelected={selectedId === data.id}
+          onClick={() => onSelect(selectedId === data.id ? null : data.id)}
+          wheelRotation={rotation}
+        />
+      ))}
     </group>
   );
 }
@@ -308,15 +289,24 @@ function LoadingFallback() {
   );
 }
 
+// Scene: create pivot at PIVOT_WORLD_X, attach WheelWithGear as its child.
+// Camera positioned to the right (CAMERA_POS) so that PIVOT_WORLD_X projects near screen-right.
+// Controls are locked (no pan, limited azimuth) — user tidak bisa menggeser pivot/wheel.
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
+  const pivotRef = useRef<THREE.Group>(null);
   const controlsRef = useRef<any>(null);
 
+  const [rotation, setRotation] = useState(0);
+
+  // auto-rotate: rotate the wheel by rotating the child group (WheelWithGear uses rotation prop)
+  useFrame((_, delta) => {
+    if (isAutoPlaying) setRotation((r) => r + delta * 0.15);
+  });
+
   useEffect(() => {
-    // Set fokus kamera ke posisi wheel (40:60 layout)
-    if (controlsRef.current) {
-      controlsRef.current.target.set(3.2, 0, 0);
-      controlsRef.current.update();
-    }
+    // set OrbitControls target to pivot (so pivot stays fixed in view)
+    controlsRef.current?.target.set(PIVOT_WORLD_X, 0, 0);
+    controlsRef.current?.update();
   }, []);
 
   return (
@@ -324,28 +314,25 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <color attach="background" args={["#1a1510"]} />
       <fog attach="fog" args={["#1a1510", 12, 30]} />
 
-      {/* Lighting */}
+      {/* Lights */}
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1.2} color="#fff8e7" />
-      <pointLight position={[-10, -5, -10]} intensity={0.5} color="#D4A574" />
-      <pointLight position={[0, 8, 0]} intensity={0.3} color="#ffffff" />
-      <spotLight position={[0, 12, 12]} angle={0.3} penumbra={0.5} intensity={0.8} color="#fff5e6" />
 
-      <Environment preset="warehouse" background={false} />
+      {/* Pivot placed at the world X that acts as "screen right line" */}
+      <group ref={pivotRef} position={[PIVOT_WORLD_X, 0, 0]}>
+        {/* wheel is child of pivot; wheel itself is shifted left inside WheelWithGear */}
+        <WheelWithGear selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
+      </group>
 
-      {/* Wheel */}
-      <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
-
-      {/* Ground */}
+      {/* ground, env, etc */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
       </mesh>
 
-      {/* Kamera geser ke kanan (40:60 layout enforcement) */}
-      <PerspectiveCamera makeDefault position={[10, 2.5, 12]} />
+      {/* Camera — placed to the right; pivot at PIVOT_WORLD_X will therefore appear near right screen edge */}
+      <PerspectiveCamera makeDefault position={CAMERA_POS} />
 
-      {/* Orbit Controls dengan ref untuk update target */}
       <OrbitControls
         ref={controlsRef}
         enableDamping
@@ -355,14 +342,15 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         minDistance={8}
         maxDistance={25}
 
-        // ⛔ batasi pergerakan horizontal
-        minAzimuthAngle={-Math.PI / 2}  
-        maxAzimuthAngle={Math.PI / 12}
-
-        maxPolarAngle={Math.PI / 1.8}
+        // --- lock controls so user cannot pan or rotate pivot off right screen-line ---
+        enablePan={false}              // no panning (move)
+        minAzimuthAngle={-Math.PI / 2} // left-most viewing angle
+        maxAzimuthAngle={Math.PI / 12} // small right rotation allowed but NOT enough to reveal full wheel
         minPolarAngle={Math.PI / 6}
-        enablePan={false}
+        maxPolarAngle={Math.PI / 1.8}
       />
+
+      <Environment preset="warehouse" background={false} />
     </>
   );
 }
