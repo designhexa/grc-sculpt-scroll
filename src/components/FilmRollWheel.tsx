@@ -407,7 +407,7 @@ export default function FilmRollWheel() {
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas camera={{ position: [4, 2, 14], fov: 50 }}>
+          <Canvas camera={{ position: [6.5, 2.4, 13.5], fov: 50 }}
 
             <Scene
               selectedId={selectedId}
