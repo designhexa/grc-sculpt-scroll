@@ -310,9 +310,11 @@ function LoadingFallback() {
 
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const controlsRef = useRef<any>(null);
+  const pivotRef = useRef<THREE.Group>(null);
+  const wheelRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    // Set fokus kamera ke posisi wheel (40:60 layout)
+    // Lock orbit focus ke wheel (bukan center scene)
     if (controlsRef.current) {
       controlsRef.current.target.set(3.2, 0, 0);
       controlsRef.current.update();
@@ -329,18 +331,27 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <directionalLight position={[10, 10, 5]} intensity={1.2} color="#fff8e7" />
       <pointLight position={[-10, -5, -10]} intensity={0.5} color="#D4A574" />
       <pointLight position={[0, 8, 0]} intensity={0.3} color="#ffffff" />
-      <spotLight position={[0, 12, 12]} angle={0.3} penumbra={0.5} intensity={0.8} color="#fff5e6" />
+      <spotLight
+        position={[0, 12, 12]}
+        angle={0.3}
+        penumbra={0.5}
+        intensity={0.8}
+        color="#fff5e6"
+      />
 
       <Environment preset="warehouse" background={false} />
 
-      {/* Wheel wrapper with pivot logic */}
-      <group ref={pivotRef}>
-        {/* Geser wheel ke kanan, tetapi pivot tetap 0,0,0 */}
+      {/* --- PIVOT LOCK --- */}
+      <group ref={pivotRef} position={[0, 0, 0]}>
+        {/* wheel geser ke kanan tapi pivot tetap di tengah */}
         <group ref={wheelRef} position={[3.2, 0, 0]}>
-          <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
+          <Wheel
+            selectedId={selectedId}
+            onSelect={onSelect}
+            isAutoPlaying={isAutoPlaying}
+          />
         </group>
       </group>
-
 
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
@@ -348,11 +359,12 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
       </mesh>
 
-      {/* Kamera geser ke kanan (40:60 layout enforcement) */}
+      {/* Kamera geser ke kanan (untuk komposisi 40:60) */}
       <PerspectiveCamera makeDefault position={[6.5, 2.2, 12]} />
 
-      {/* Orbit Controls dengan ref untuk update target */}
+      {/* Orbit Controls */}
       <OrbitControls
+        ref={controlsRef}
         enableDamping
         dampingFactor={0.05}
         rotateSpeed={0.5}
@@ -361,7 +373,6 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
-        target={[0, 0, 0]}  // ⬅️ Fokus ke pivotGroup, bukan posisi wheel
       />
     </>
   );
