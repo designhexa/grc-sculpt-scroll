@@ -282,14 +282,13 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
   useFrame((_, delta) => {
     if (isAutoPlaying && pivotRef.current) {
-      pivotRef.current.rotation.y += delta * 0.15; // speed
+      pivotRef.current.rotation.y += delta * 0.15;
     }
   });
 
   useEffect(() => {
-    // Lock orbit focus ke wheel (bukan center scene)
     if (controlsRef.current) {
-      controlsRef.current.target.set(6, 0, 0);
+      controlsRef.current.target.set(6, 0, 0); // sesuai pivot
       controlsRef.current.update();
     }
   }, []);
@@ -315,16 +314,12 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <Environment preset="warehouse" background={false} />
 
       {/* Pivot now moves to right side of view */}
-      <group ref={pivotRef} position={[rightEdge, 0, 0]}>
-          {/* Wheel contents, centered inside pivot */}
-        <group ref={pivotRef} position={[6, 0, 0]}>
-          <Wheel
-            selectedId={selectedId}
-            onSelect={onSelect}
-            isAutoPlaying={isAutoPlaying}
-          />
-        </group>
+     <group ref={pivotRef} position={[6, 0, 0]}>
+      {/* Geser wheel ke kiri dari pivot sebanyak radius */}
+      <group ref={wheelRef} position={[-3.2, 0, 0]}>
+        <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
       </group>
+    </group>
 
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
