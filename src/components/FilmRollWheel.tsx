@@ -295,7 +295,7 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const pivotRef = useRef<THREE.Group>(null);
   const controlsRef = useRef<any>(null);
-
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   const [rotation, setRotation] = useState(0);
 
   // auto-rotate: rotate the wheel by rotating the child group (WheelWithGear uses rotation prop)
@@ -306,6 +306,18 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   useEffect(() => {
     controlsRef.current.target.set(0, 0, 0); // pivot wheel
     controlsRef.current.update();
+  }, []);
+
+  useEffect(() => {
+    const cam = cameraRef.current;
+    if (!cam) return;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Geser pivot ke kanan (0.5 = setengah layar)
+    cam.setViewOffset(width, height, width * 0.48, 0, width, height);
+    cam.updateProjectionMatrix();
   }, []);
 
   return (
@@ -330,25 +342,18 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Camera — placed to the right; pivot at PIVOT_WORLD_X will therefore appear near right screen edge */}
-      <PerspectiveCamera makeDefault position={[18, 3, 10]} />
+      <PerspectiveCamera
+        makeDefault
+        ref={cameraRef}
+        position={[18, 3, 10]}
+      />
 
       <OrbitControls
         ref={controlsRef}
-        enableDamping
-        dampingFactor={0.06}
-
         enablePan={false}
-
-        // ⛔ BATAS HORIZONTAL – pivot selalu di kanan layar
         minAzimuthAngle={-0.05}
         maxAzimuthAngle={0.3}
-
-        // ⛔ BATAS VERTIKAL
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 1.4}
-
-        minDistance={8}
-        maxDistance={22}
+        target={[0, 0, 0]}
       />
 
       <Environment preset="warehouse" background={false} />
