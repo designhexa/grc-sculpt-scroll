@@ -76,7 +76,7 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const wheelRef = useRef<THREE.Group>(null);
   const pivotRef = useRef(); // <<--- Tambahan penting
   const [rotation, setRotation] = useState(0);
-  const radius = 6;
+  const radius = 4.2;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
@@ -314,9 +314,9 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       <Environment preset="warehouse" background={false} />
 
       {/* Pivot now moves to right side of view */}
-     <group ref={pivotRef} position={[6, 0, 0]}>
+     <group ref={pivotRef} position={[6, 0, 0]} scale={[0.7, 0.7, 0.7]}>
       {/* Geser wheel ke kiri dari pivot sebanyak radius */}
-      <group ref={wheelRef} position={[-3.2, 0, 0]}>
+      <group ref={wheelRef} position={[-radius, 0, 0]}>
         <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
       </group>
     </group>
@@ -328,7 +328,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
       </mesh>
 
       {/* Kamera geser ke kanan (untuk komposisi 40:60) */}
-      <PerspectiveCamera makeDefault position={[8.5, 2.2, 12]} />
+      <PerspectiveCamera makeDefault position={[14, 3, 16]} />
 
       {/* Orbit Controls */}
       <OrbitControls
