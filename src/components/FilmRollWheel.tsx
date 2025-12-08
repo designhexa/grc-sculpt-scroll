@@ -1,5 +1,5 @@
-import { useRef, useEffect } from "react";
-import { OrbitControls, PerspectiveCamera, Environment } from "@react-three/drei";
+import { useRef, useEffect, useState, Suspense } from "react";
+import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
