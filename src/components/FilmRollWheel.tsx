@@ -108,6 +108,7 @@ interface WheelProps {
 
 function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const wheelRef = useRef<THREE.Group>(null);
+  const pivotRef = useRef(); // <<--- Tambahan penting
   const [rotation, setRotation] = useState(0);
   const radius = 6;
   const cardCount = ornamentData.length;
