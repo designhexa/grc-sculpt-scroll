@@ -30,6 +30,8 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   },
 }));
 
+const pivotOffsetX = 3.5; // adjust sampai wheel pas 60% layout
+
 interface CardProps {
   data: OrnamentData;
   angle: number;
@@ -142,7 +144,7 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   const focusedIndex = selectedId != null ? selectedId - 1 : null;
 
   return (
-    <group ref={wheelRef} position={[2.5, 0, 0]}>
+    <group ref={wheelRef} position={[0, 0, 0]}>
       {/* CENTER GEAR */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
         <mesh>
@@ -338,15 +340,9 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       {/* Controls */}
       <OrbitControls
-        ref={controlsRef}
         enableDamping
         dampingFactor={0.05}
-        rotateSpeed={0.5}
-        zoomSpeed={0.8}
-        minDistance={8}
-        maxDistance={25}
-        maxPolarAngle={Math.PI / 1.8}
-        minPolarAngle={Math.PI / 6}
+        target={[pivotOffsetX, 0, 0]}
       />
     </>
   );
@@ -404,7 +400,7 @@ export default function FilmRollWheel() {
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas camera={{ position: [4, 2, 14], fov: 50 }} dpr={[1, 2]}>
+          <Canvas camera={{ position: [pivotOffsetX + 6, 2, 14], fov: 50 }}>
             <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
           </Canvas>
         </Suspense>
