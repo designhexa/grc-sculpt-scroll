@@ -333,14 +333,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       <Environment preset="warehouse" background={false} />
 
-      {/* Wheel wrapper with pivot logic */}
-      <group ref={pivotRef}>
-        {/* Geser wheel ke kanan, tetapi pivot tetap 0,0,0 */}
-        <group ref={wheelRef} position={[3.2, 0, 0]}>
-          <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
-        </group>
-      </group>
-
+      {/* Wheel */}
+      <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
 
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
@@ -353,15 +347,15 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       {/* Orbit Controls dengan ref untuk update target */}
       <OrbitControls
+        ref={controlsRef}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.06}
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         minDistance={8}
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
-        target={[0, 0, 0]}  // ⬅️ Fokus ke pivotGroup, bukan posisi wheel
       />
     </>
   );
