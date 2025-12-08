@@ -304,7 +304,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
   });
 
   useEffect(() => {
-    controlsRef.current.target.set(0, 0, 0); // pivot wheel
+    controlsRef.current.target.set(4, 0, 0); // pivot wheel
     controlsRef.current.update();
   }, []);
 
