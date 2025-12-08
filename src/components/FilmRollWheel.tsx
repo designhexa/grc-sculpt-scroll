@@ -306,11 +306,11 @@ function Scene({
   });
 
   useEffect(() => {
-    if (!controlsRef.current) return;
-    // Target pivot world position explicitly
+    if (!controlsRef.current || !cameraRef.current) return;
+
     controlsRef.current.target.set(PIVOT_WORLD_X, 0, 0);
     controlsRef.current.update();
-  }, []);
+  }, [cameraRef.current]);  
 
   return (
     <>
@@ -332,25 +332,29 @@ function Scene({
       </mesh>
 
       {/* Camera group trick: move cameraGroup to right (positive X) -> pivot will project near screen right */}
-      <group ref={cameraGroupRef} position={[CAMERA_GROUP_OFFSET_X, 0, 0]}>
+      <group ref={cameraGroupRef} position={[-CAMERA_GROUP_OFFSET_X, 0, 0]}>
         <PerspectiveCamera ref={cameraRef} makeDefault position={CAMERA_BASE_POS} />
       </group>
 
+
       {/* Orbit controls operate on the default camera */}
+      {cameraRef.current && (
       <OrbitControls
         ref={controlsRef}
+        args={[cameraRef.current]}  // baru aman setelah kamera siap
         enableDamping
         dampingFactor={0.06}
-        enablePan={false} // disallow panning so pivot projection doesn't shift
+        enablePan={false}
         rotateSpeed={0.5}
         zoomSpeed={0.9}
-        minDistance={5.5} // allow close view
+        minDistance={5.5}
         maxDistance={25}
-        minAzimuthAngle={-0.7}
-        maxAzimuthAngle={0.7}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 1.5}
-      />
+        minAzimuthAngle={-Infinity}  // FULL 360
+        maxAzimuthAngle={Infinity}
+        minPolarAngle={0.01}
+        maxPolarAngle={Math.PI - 0.01}
+       />
+      )}
 
       <Environment preset="warehouse" background={false} />
     </>
