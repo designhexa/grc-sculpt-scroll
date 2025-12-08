@@ -356,6 +356,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
+        target={[2, 0, 0]}   // ⬅️ titik pandang geser ke kanan
       />
     </>
   );
