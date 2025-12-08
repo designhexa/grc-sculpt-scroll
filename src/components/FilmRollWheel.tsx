@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, Suspense } from "react";
 import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
-import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
@@ -21,7 +21,7 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Ornamen ${i + 1}`,
   texture: grcOrnament,
-  description: `Ornamen GRC premium dengan desain klasik yang elegan. Cocok untuk dekorasi eksterior maupun interior bangunan.`,
+  description: `Ornamen GRC premium dengan desain klasik yang elegan.`,
   specs: {
     material: "Glass Fiber Reinforced Concrete",
     dimensions: `${60 + i * 5}cm x ${40 + i * 3}cm x ${8 + i}cm`,
@@ -30,75 +30,41 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   },
 }));
 
-interface CardProps {
-  data: OrnamentData;
-  angle: number;
-  radius: number;
-  isSelected: boolean;
-  onClick: () => void;
-  wheelRotation: number;
-}
+/* --------------------- CARD ---------------------- */
 
-function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
+  const meshRef = useRef(null);
   const texture = useTexture(data.texture);
 
-  // ensure texture wrapping if needed
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
   const totalAngle = angle + wheelRotation;
   const x = Math.sin(totalAngle) * radius;
   const z = Math.cos(totalAngle) * radius;
-  // Face outward - rotation points away from center
-  const rotationY = totalAngle;
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
-      {/* Card frame (behind) */}
+    <group position={[x, 0, z]} rotation={[0, totalAngle, 0]}>
       <mesh position={[0, 0, -0.08]}>
         <boxGeometry args={[3.6, 2.6, 0.04]} />
-        <meshStandardMaterial
-          color={isSelected ? "#D4A574" : "#8B7355"}
-          metalness={0.5}
-          roughness={0.3}
-        />
+        <meshStandardMaterial color={isSelected ? "#D4A574" : "#8B7355"} />
       </mesh>
 
-      {/* Main card - landscape orientation */}
-      <mesh
-        ref={meshRef}
-        onClick={(e: ThreeEvent<MouseEvent>) => {
-          e.stopPropagation();
-          onClick();
-        }}
-      >
+      <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
         <boxGeometry args={[3.4, 2.4, 0.12]} />
-        <meshStandardMaterial
-          map={texture}
-          metalness={0.2}
-          roughness={0.6}
-          emissive={isSelected ? "#D4A574" : "#000000"}
-          emissiveIntensity={isSelected ? 0.4 : 0}
-        />
+        <meshStandardMaterial map={texture} />
       </mesh>
 
-      {/* Label */}
-      <Html
-        position={[0, -1.6, 0.1]}
-        center
-        distanceFactor={8}
-        style={{ pointerEvents: "none" }}
-      >
-        <div className="bg-background/90 backdrop-blur-sm px-3 py-1 rounded-md border border-primary/30 whitespace-nowrap">
-          <span className="text-xs font-bold text-primary uppercase tracking-wider">
-            ORN. {data.id}
-          </span>
+      <Html position={[0, -1.6, 0.1]} center distanceFactor={8}>
+        <div className="backdrop-blur-md bg-white/30 text-black px-3 py-1 rounded-md border border-white/50">
+          ORN. {data.id}
         </div>
       </Html>
     </group>
   );
 }
+
+/* --------------------- MAIN UI ---------------------- */
 
 interface WheelProps {
   selectedId: number | null;
@@ -342,10 +308,10 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       <Environment preset="warehouse" background={false} />
 
-      {/* --- PIVOT LOCK --- */}
-      <group ref={pivotRef} position={[0, 0, 0]}>
-        {/* wheel geser ke kanan tapi pivot tetap di tengah */}
-        <group ref={wheelRef} position={[3.2, 0, 0]}>
+      {/* Pivot now moves to right side of view */}
+      <group ref={pivotRef} position={[6, 0, 0]}>
+        {/* Wheel stays centered *within pivot*, but visually offset */}
+        <group ref={wheelRef} position={[-5.8, 0, 0]}>
           <Wheel
             selectedId={selectedId}
             onSelect={onSelect}
