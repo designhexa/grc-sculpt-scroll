@@ -315,40 +315,23 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
 
       {/* Lighting */}
       <ambientLight intensity={0.5} />
-      <directionalLight
-        position={[10, 10, 5]}
-        intensity={1.2}
-        color="#fff8e7"
-      />
+      <directionalLight position={[10, 10, 5]} intensity={1.2} color="#fff8e7" />
       <pointLight position={[-10, -5, -10]} intensity={0.5} color="#D4A574" />
       <pointLight position={[0, 8, 0]} intensity={0.3} color="#ffffff" />
-      <spotLight
-        position={[0, 12, 12]}
-        angle={0.3}
-        penumbra={0.5}
-        intensity={0.8}
-        color="#fff5e6"
-      />
+      <spotLight position={[0, 12, 12]} angle={0.3} penumbra={0.5} intensity={0.8} color="#fff5e6" />
 
-      {/* Environment for reflections */}
       <Environment preset="warehouse" />
 
-      {/* Wheel shifted to the right */}
-      <group position={[3.2, 0, 0]} scale={[0.92, 0.92, 0.92]}>
-        <Wheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          isAutoPlaying={isAutoPlaying}
-        />
+      {/* Wheel (NO position shift here anymore) */}
+      <group scale={[0.92, 0.92, 0.92]}>
+        <Wheel selectedId={selectedId} onSelect={onSelect} isAutoPlaying={isAutoPlaying} />
       </group>
 
-      {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]}>
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color="#0d0a08" metalness={0.2} roughness={0.9} />
       </mesh>
 
-      {/* Controls */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
@@ -358,7 +341,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: WheelProps) {
         maxDistance={25}
         maxPolarAngle={Math.PI / 1.8}
         minPolarAngle={Math.PI / 6}
-        target={[3.2, 0, 0]}   // <-- ini yang geser pivot
+        target={[3.2, 0, 0]} // <-- satu-satunya offset lokasi wheel
       />
     </>
   );
