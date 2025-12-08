@@ -1,8 +1,18 @@
 import { useRef, useEffect, useState, Suspense } from "react";
-import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import {
+  OrbitControls,
+  PerspectiveCamera,
+  Environment,
+  Html,
+  useTexture,
+} from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
+
+/* ------------------------------------------------------------------
+ * DATA
+ * ------------------------------------------------------------------ */
 
 interface OrnamentData {
   id: number;
@@ -30,7 +40,9 @@ const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   },
 }));
 
-/* --------------------- CARD ---------------------- */
+/* ------------------------------------------------------------------
+ * CARD COMPONENT
+ * ------------------------------------------------------------------ */
 
 function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
   const meshRef = useRef(null);
@@ -45,16 +57,25 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
 
   return (
     <group position={[x, 0, z]} rotation={[0, totalAngle, 0]}>
-      <mesh position={[6.01, 0, 0]} rotation={[0, Math.PI/2, 0]}>
+      {/* Shadow panel */}
+      <mesh position={[6.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#1a1510" />
       </mesh>
 
-      <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
+      {/* Card texture */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
         <boxGeometry args={[3.4, 2.4, 0.12]} />
         <meshStandardMaterial map={texture} />
       </mesh>
 
+      {/* Label */}
       <Html position={[0, -1.6, 0.1]} center distanceFactor={8}>
         <div className="backdrop-blur-md bg-white/30 text-black px-3 py-1 rounded-md border border-white/50">
           ORN. {data.id}
@@ -64,74 +85,52 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }) {
   );
 }
 
-/* --------------------- MAIN UI ---------------------- */
+/* ------------------------------------------------------------------
+ * GEARED WHEEL (FULL MEKANISME)
+ * ------------------------------------------------------------------ */
 
-interface WheelProps {
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-  isAutoPlaying: boolean;
-}
-
-function Wheel({ selectedId, onSelect, isAutoPlaying }) {
-  const wheelRef = useRef();
-  const [rotation, setRotation] = useState(0);
-
+function WheelWithGear({ selectedId, onSelect, rotation }) {
   const radius = 4.2;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
-  useFrame((_, delta) => {
-    if (isAutoPlaying && !selectedId) setRotation(r => r + delta * 0.15);
-  });
+  const gearInnerRadius = 1.2;
+  const gearOuterRadius = 2.2;
+  const gearTeeth = 24;
 
   return (
-    <group ref={wheelRef}>
-      {ornamentData.map((data, index) => {
-        const angle = index * angleStep;
-        return (
-          <Card
-            key={data.id}
-            data={data}
-            angle={angle}
-            radius={radius}
-            wheelRotation={rotation}
-            isSelected={selectedId === data.id}
-            onClick={() => onSelect(selectedId === data.id ? null : data.id)}
-          />
-        );
-      })}
-    </group>
-  );
-}
-
-  return (
-    <group ref={wheelRef} position={[3.2, 0, 0]}>
-      {/* Center gear hub */}
+    <group position={[3.2, 0, 0]}>
+      {/* Central rotating gear */}
       <group rotation={[Math.PI / 2, 0, rotation]}>
-        {/* Main gear body */}
         <mesh>
           <cylinderGeometry args={[gearInnerRadius, gearInnerRadius, 0.4, 32]} />
           <meshStandardMaterial color="#4A3F35" metalness={0.7} roughness={0.3} />
         </mesh>
-        
-        {/* Gear teeth */}
+
+        {/* Teeth */}
         {Array.from({ length: gearTeeth }, (_, i) => {
-          const toothAngle = (i / gearTeeth) * Math.PI * 2;
-          const toothX = Math.cos(toothAngle) * gearInnerRadius;
-          const toothZ = Math.sin(toothAngle) * gearInnerRadius;
+          const angle = (i / gearTeeth) * Math.PI * 2;
           return (
             <mesh
               key={i}
-              position={[toothX, 0, toothZ]}
-              rotation={[0, -toothAngle, 0]}
+              position={[
+                Math.cos(angle) * gearInnerRadius,
+                0,
+                Math.sin(angle) * gearInnerRadius,
+              ]}
+              rotation={[0, -angle, 0]}
             >
               <boxGeometry args={[0.4, 0.35, 0.25]} />
-              <meshStandardMaterial color="#5C4A3D" metalness={0.6} roughness={0.4} />
+              <meshStandardMaterial
+                color="#5C4A3D"
+                metalness={0.6}
+                roughness={0.4}
+              />
             </mesh>
           );
         })}
-        
-        {/* Center hole detail */}
+
+        {/* Center hole */}
         <mesh position={[0, 0.21, 0]}>
           <cylinderGeometry args={[0.5, 0.5, 0.1, 6]} />
           <meshStandardMaterial color="#3D332A" metalness={0.8} roughness={0.2} />
@@ -142,68 +141,65 @@ function Wheel({ selectedId, onSelect, isAutoPlaying }) {
         </mesh>
       </group>
 
-      {/* Outer ring - top */}
+      {/* Rings */}
       <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
-
-      {/* Outer ring - bottom */}
       <mesh position={[0, -1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius, 0.08, 8, 64]} />
         <meshStandardMaterial color="#8B7355" metalness={0.5} roughness={0.3} />
       </mesh>
 
-      {/* Connecting rods from gear to cards */}
+      {/* Rods connecting gear → cards */}
       {Array.from({ length: cardCount }, (_, i) => {
         const rodAngle = (i / cardCount) * Math.PI * 2 + rotation;
+
         const innerX = Math.sin(rodAngle) * gearOuterRadius;
         const innerZ = Math.cos(rodAngle) * gearOuterRadius;
+
         const outerX = Math.sin(rodAngle) * (radius - 0.5);
         const outerZ = Math.cos(rodAngle) * (radius - 0.5);
+
         const midX = (innerX + outerX) / 2;
         const midZ = (innerZ + outerZ) / 2;
-        const rodLength = Math.sqrt(Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2));
-        
+        const rodLength = Math.sqrt(
+          Math.pow(outerX - innerX, 2) + Math.pow(outerZ - innerZ, 2)
+        );
+
         return (
-          <group key={i}>
-            {/* Horizontal rod */}
-            <mesh
-              position={[midX, 0, midZ]}
-              rotation={[0, -rodAngle, 0]}
-            >
-              <boxGeometry args={[rodLength, 0.06, 0.06]} />
-              <meshStandardMaterial color="#6B5B4F" metalness={0.5} roughness={0.4} />
-            </mesh>
-          </group>
+          <mesh key={i} position={[midX, 0, midZ]} rotation={[0, -rodAngle, 0]}>
+            <boxGeometry args={[rodLength, 0.06, 0.06]} />
+            <meshStandardMaterial
+              color="#6B5B4F"
+              metalness={0.5}
+              roughness={0.4}
+            />
+          </mesh>
         );
       })}
 
       {/* Cards */}
-      {ornamentData.map((data, index) => {
-        const cardAngle = index * angleStep;
-        return (
-          <Card
-            key={data.id}
-            data={data}
-            angle={cardAngle}
-            radius={radius}
-            isSelected={selectedId === data.id}
-            onClick={() => onSelect(selectedId === data.id ? null : data.id)}
-            wheelRotation={rotation}
-          />
-        );
-      })}
+      {ornamentData.map((data, index) => (
+        <Card
+          key={data.id}
+          data={data}
+          angle={index * angleStep}
+          radius={radius}
+          wheelRotation={rotation}
+          isSelected={selectedId === data.id}
+          onClick={() => onSelect(selectedId === data.id ? null : data.id)}
+        />
+      ))}
     </group>
   );
 }
 
-interface DetailPanelProps {
-  data: OrnamentData | null;
-  onClose: () => void;
-}
+/* ------------------------------------------------------------------
+ * DETAIL PANEL
+ * ------------------------------------------------------------------ */
 
-function DetailPanel({ data, onClose }: DetailPanelProps) {
+function DetailPanel({ data, onClose }) {
   if (!data) return null;
 
   return (
@@ -212,17 +208,15 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-transparent">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">
-                {data.name}
-              </h2>
-            </div>
+            <h2 className="text-lg md:text-xl font-bold text-primary uppercase tracking-wider">
+              {data.name}
+            </h2>
+
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center"
             >
-              <span className="text-foreground text-lg">×</span>
+              <span className="text-lg">×</span>
             </button>
           </div>
         </div>
@@ -247,17 +241,13 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
 
         {/* Specifications */}
         <div className="flex-1 px-4 md:px-6 pb-6 overflow-auto">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-accent rounded-full" />
+          <h3 className="text-sm font-bold uppercase tracking-wider mb-3">
             Spesifikasi
           </h3>
           <div className="space-y-3">
             {Object.entries(data.specs).map(([key, value]) => (
-              <div
-                key={key}
-                className="flex justify-between items-center py-2 border-b border-primary/10"
-              >
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              <div key={key} className="flex justify-between py-2 border-b border-primary/10">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
                   {key === "material"
                     ? "Material"
                     : key === "dimensions"
@@ -266,7 +256,7 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
                     ? "Berat"
                     : "Finishing"}
                 </span>
-                <span className="text-sm font-medium text-foreground text-right max-w-[50%]">
+                <span className="text-sm font-medium max-w-[50%] text-right">
                   {value}
                 </span>
               </div>
@@ -277,6 +267,10 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------
+ * LOADING FALLBACK
+ * ------------------------------------------------------------------ */
 
 function LoadingFallback() {
   return (
@@ -289,18 +283,18 @@ function LoadingFallback() {
   );
 }
 
+/* ------------------------------------------------------------------
+ * 3D SCENE
+ * ------------------------------------------------------------------ */
+
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const pivotRef = useRef();
-  const wheelContainer = useRef();
   const controlsRef = useRef();
 
-  const radius = 4.2;
+  const [rotation, setRotation] = useState(0);
 
-  // Rotasi pivot bukan wheel
   useFrame((_, delta) => {
-    if (isAutoPlaying && pivotRef.current) {
-      pivotRef.current.rotation.y += delta * 0.15;
-    }
+    if (isAutoPlaying) setRotation((r) => r + delta * 0.15);
   });
 
   useEffect(() => {
@@ -311,15 +305,15 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   return (
     <>
       <color attach="background" args={["#1a1510"]} />
-
       <PerspectiveCamera makeDefault position={[14, 3, 16]} />
 
-      {/* *** PIVOT FIX *** */}
+      {/* Pivot */}
       <group ref={pivotRef} position={[6, 0, 0]}>
-        {/* Geser wheel ke kiri sejauh radius supaya hanya separuh tampil */}
-        <group ref={pivotRef} position={[6, 0, 0]}>
-  <group ref={wheelContainer} position={[-radius, 0, 0]} scale={[0.75, 0.75, 0.75]}>
-        </group>
+        <WheelWithGear
+          selectedId={selectedId}
+          onSelect={onSelect}
+          rotation={rotation}
+        />
       </group>
 
       <OrbitControls
@@ -336,6 +330,9 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   );
 }
 
+/* ------------------------------------------------------------------
+ * MAIN COMPONENT
+ * ------------------------------------------------------------------ */
 
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -352,18 +349,13 @@ export default function FilmRollWheel() {
 
   return (
     <div className="relative w-full h-screen bg-background overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 pointer-events-none z-0" />
-
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-background/90 to-transparent backdrop-blur-sm z-20">
         <div className="h-full px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-lg" />
-            <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">
-              GRC Ornaments
-            </h1>
-          </div>
+          <h1 className="text-lg md:text-2xl font-bold text-primary uppercase tracking-widest">
+            GRC Ornaments
+          </h1>
+
           <button
             onClick={() => setIsAutoPlaying(!isAutoPlaying)}
             className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all ${
@@ -372,7 +364,7 @@ export default function FilmRollWheel() {
                 : "bg-primary/10 border-primary/30 text-foreground"
             }`}
           >
-            <span className="text-xs md:text-sm font-medium uppercase tracking-wide">
+            <span className="text-xs md:text-sm uppercase">
               {isAutoPlaying ? "⏸ Pause" : "▶ Play"}
             </span>
           </button>
@@ -382,23 +374,21 @@ export default function FilmRollWheel() {
       {/* Detail Panel */}
       <DetailPanel data={selectedData} onClose={() => setSelectedId(null)} />
 
-      {/* Instructions */}
+      {/* Instruction */}
       {!selectedId && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
           <div className="bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 rounded-full border border-primary/30 shadow-lg">
-            <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
+            <p className="text-xs md:text-sm text-muted-foreground">
               Klik ornamen untuk melihat detail
             </p>
           </div>
         </div>
       )}
 
-      {/* 3D Canvas */}
+      {/* Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
           <Canvas>
-
             <Scene
               selectedId={selectedId}
               onSelect={handleSelect}
