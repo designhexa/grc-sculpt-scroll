@@ -45,79 +45,75 @@ interface CardProps {
 }
 
 function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
-  const textureMeshRef = useRef<THREE.Mesh>(null);
-  const billboardRef = useRef<THREE.Group>(null);
-
-  // Load texture
+  const meshRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(data.texture);
+
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // posisi melingkar
+  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
+  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
-
-  // rotasi agar menghadap keluar lingkaran
-  const rotationY = angle + Math.PI;
-
-  // billboard always face camera
-  useFrame(({ camera }) => {
-    if (billboardRef.current) {
-      billboardRef.current.lookAt(camera.position);
-
-      // Because Three.js front face is -Z, we flip to correct
-      billboardRef.current.rotation.y += Math.PI;
-    }
-  });
+  // Keep cards upright and facing camera
+  const rotationX = -angle;
 
   return (
-    <group
-      position={[0, y, z]}
-      rotation={[0, rotationY, 0]}
-    >
-      {/* Billboard layer */}
-      <group ref={billboardRef}>
-        
-        {/* Frame */}
+    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
+      {/* Card frame */}
+      <mesh position={[0, 0, 0.1]}>
+        <boxGeometry args={[4, 2.8, 0.05]} />
         <meshStandardMaterial
-          color={isSelected ? "#00ffff" : "#4D4D4D"} // 30% grey
+          color={isSelected ? "#00ffff" : "#1a1a2e"}
           metalness={0.9}
           roughness={0.1}
-          emissive={isSelected ? "#00ffff" : "#141414"} // gelap lembut
+          emissive={isSelected ? "#00ffff" : "#0a0a15"}
           emissiveIntensity={isSelected ? 0.3 : 0.1}
         />
+      </mesh>
 
-        {/* Main textured card */}
-        <mesh
-          ref={textureMeshRef}
-          position={[0, 0, 0]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
-        >
-          <boxGeometry args={[3.8, 2.6, 0.15]} />
-          <meshStandardMaterial
-            map={texture}
-            metalness={0.1}
-            roughness={0.5}
-            emissive={isSelected ? "#00aaff" : "#000000"}
-            emissiveIntensity={isSelected ? 0.2 : 0}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
+      <mesh
+        ref={meshRef}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        <boxGeometry args={[3.8, 2.6, 0.15]} />
+        <meshStandardMaterial
+      map={texture}
+      metalness={0.1}
+      roughness={0.5}
+      emissive={isSelected ? "#00aaff" : "#000000"}
+      emissiveIntensity={isSelected ? 0.2 : 0}
+      side={THREE.DoubleSide}
+    />
+      </mesh>
 
-        {/* Glow */}
-        <mesh position={[0, 0, 0.09]}>
-          <boxGeometry args={[3.9, 2.7, 0.01]} />
-          <meshBasicMaterial
-            color={isSelected ? "#00ffff" : "#334455"}
-            transparent
-            opacity={isSelected ? 0.8 : 0.3}
-          />
-        </mesh>
+      {/* Neon edge glow - front side */}
+      <mesh position={[0, 0, 0.09]}>
+        <boxGeometry args={[3.9, 2.7, 0.01]} />
+        <meshBasicMaterial
+          color={isSelected ? "#00ffff" : "#334455"}
+          transparent
+          opacity={isSelected ? 0.8 : 0.3}
+        />
+      </mesh>
 
-      </group>
+      {/* Label */}
+      <Html
+        position={[0, -1.8, 0.2]}
+        center
+        distanceFactor={10}
+        style={{ pointerEvents: "none" }}
+      >
+        <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-cyan-400/50 whitespace-nowrap shadow-lg">
+          <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
+            ORN. {data.id}
+          </span>
+        </div>
+      </Html>
     </group>
   );
 }
@@ -359,7 +355,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#B0B0B0" metalness={0.2} roughness={0.9} />
+        <meshStandardMaterial color="#050508" metalness={0.5} roughness={0.8} />
       </mesh>
 
       <PerspectiveCamera makeDefault position={[-2, 0, 20]} fov={50} />
