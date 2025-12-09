@@ -303,61 +303,47 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }) {
-  const [rotation, setRotation] = useState(0);
+function Scene() {
+  const wheelPivot = useRef<THREE.Group>(null);
+  const cameraRef = useRef();
+  
+  // Titik pivot kanan layar
+  const PIVOT_X = 3.5; // geser kanan
+  const PIVOT_Y = 0;
+  const PIVOT_Z = 0;
 
-  useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
+  useFrame(({ camera }) => {
+    // Kunci kamera melihat titik kanan layar
+    camera.lookAt(PIVOT_X, PIVOT_Y, PIVOT_Z);
   });
-
-  // POSISI OBYEK WHEEL DI DUNIA 3D
-  const wheelWorldX = 10;   // jangan terlalu besar
-  const cameraOffsetX = -8; // kamera digeser ke kiri → wheel tampil di kanan layar
 
   return (
     <>
-      <color attach="background" args={["#202020"]} />
-      <fog attach="fog" args={["#080810", 30, 70]} />
-
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 10]} intensity={1.5} />
-      <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
-
-      {/* OBYEK WHEEL */}
-      <group position={[wheelWorldX, 0, 0]}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={rotation}
-        />
-      </group>
-
-      {/* FLOOR */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
-      </mesh>
-
-      {/* KAMERA DI-LOCK MENGHADAP WHEEL */}
+      {/* Kamera awal — langsung diarahkan ke kanan */}
       <PerspectiveCamera
+        ref={cameraRef}
         makeDefault
-        position={[cameraOffsetX, 0, 20]}   // kamera ke kiri
-        fov={50}
+        position={[0, 0, 6]} // dekat ke layar
+        fov={45}
+        onUpdate={(cam) => cam.lookAt(PIVOT_X, PIVOT_Y, PIVOT_Z)}
       />
 
+      {/* OrbitControls tidak boleh mengembalikan target ke tengah */}
       <OrbitControls
-        enableDamping
-        dampingFactor={0.05}
-        enablePan={false}         // tidak boleh geser kamera
-        minDistance={12}
-        maxDistance={30}
-        target={[wheelWorldX, 0, 0]}  // selalu melihat wheel
+        enableRotate={false}
+        enablePan={false}
+        enableZoom={true}
+        target={[PIVOT_X, PIVOT_Y, PIVOT_Z]}
       />
 
-      <Environment preset="night" background={false} />
+      {/* PIVOT roda dipindahkan ke kanan layar */}
+      <group ref={wheelPivot} position={[PIVOT_X, PIVOT_Y, PIVOT_Z]}>
+        <RoboticWheel rotation={[0, 0, 0]} />
+      </group>
     </>
   );
 }
+
 
 // Helper: Kamera lookAt tanpa error
 function CameraLookAt({ target }) {
