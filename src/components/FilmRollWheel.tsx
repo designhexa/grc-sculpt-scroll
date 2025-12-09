@@ -306,16 +306,13 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const [rotation, setRotation] = useState(0);
 
-  const wheelScreenOffset = 10; // Wheel tetap di kanan dunia
-
   useFrame((_, delta) => {
     if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
-  useFrame(({ camera }) => {
-    // 🔒 Kamera dikunci menghadap wheel
-    camera.lookAt(wheelScreenOffset, 0, 0);
-  });
+  // POSISI OBYEK WHEEL DI DUNIA 3D
+  const wheelWorldX = 10;   // jangan terlalu besar
+  const cameraOffsetX = -8; // kamera digeser ke kiri → wheel tampil di kanan layar
 
   return (
     <>
@@ -323,11 +320,11 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
       <fog attach="fog" args={["#080810", 30, 70]} />
 
       <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
+      <directionalLight position={[5, 10, 10]} intensity={1.5} />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* 🔥 Posisi wheel DIKANAN layar (bukan tengah screen) */}
-      <group position={[wheelScreenOffset, 0, 0]}>
+      {/* OBYEK WHEEL */}
+      <group position={[wheelWorldX, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
@@ -335,25 +332,26 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
         />
       </group>
 
-      {/* Floor */}
+      {/* FLOOR */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* 🔥 Kamera DIKUNCI POSISI — tetap, tidak center otomatis */}
+      {/* KAMERA DI-LOCK MENGHADAP WHEEL */}
       <PerspectiveCamera
         makeDefault
-        position={[-8, 2, 20]}   // lebih kiri → wheel muncul di kanan layar keluar separuh
+        position={[cameraOffsetX, 0, 20]}   // kamera ke kiri
         fov={50}
       />
 
-      {/* OrbitControls: hanya zoom */}
       <OrbitControls
-        enableRotate={false}
-        enablePan={false}
-        enableDamping={false}
-        enableZoom={true}
+        enableDamping
+        dampingFactor={0.05}
+        enablePan={false}         // tidak boleh geser kamera
+        minDistance={12}
+        maxDistance={30}
+        target={[wheelWorldX, 0, 0]}  // selalu melihat wheel
       />
 
       <Environment preset="night" background={false} />
