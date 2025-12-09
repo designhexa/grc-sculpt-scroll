@@ -306,12 +306,16 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const [rotation, setRotation] = useState(0);
 
+  const wheelScreenOffset = 10; // Wheel tetap di kanan dunia
+
   useFrame((_, delta) => {
     if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
-  // Geser wheel jauh ke kanan layar
-  const wheelScreenOffset = 12; // > semakin besar semakin ke kanan
+  useFrame(({ camera }) => {
+    // 🔒 Kamera dikunci menghadap wheel
+    camera.lookAt(wheelScreenOffset, 0, 0);
+  });
 
   return (
     <>
@@ -322,7 +326,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel dipindah ke kanan layar */}
+      {/* 🔥 Posisi wheel DIKANAN layar (bukan tengah screen) */}
       <group position={[wheelScreenOffset, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
@@ -331,24 +335,25 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
         />
       </group>
 
-      {/* Lantai */}
+      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* Kamera lebih dekat */}
-      <PerspectiveCamera makeDefault position={[0, 0, 18]} fov={50} />
+      {/* 🔥 Kamera DIKUNCI POSISI — tetap, tidak center otomatis */}
+      <PerspectiveCamera
+        makeDefault
+        position={[-8, 2, 20]}   // lebih kiri → wheel muncul di kanan layar keluar separuh
+        fov={50}
+      />
 
-      {/* FIX: Kamera tidak mengikuti wheel — target tetap pusat layar */}
+      {/* OrbitControls: hanya zoom */}
       <OrbitControls
-        enableDamping
-        dampingFactor={0.05}
+        enableRotate={false}
         enablePan={false}
+        enableDamping={false}
         enableZoom={true}
-        minDistance={12}
-        maxDistance={30}
-        target={[0, 0, 0]}   // PENTING! bukan wheelScreenOffset
       />
 
       <Environment preset="night" background={false} />
