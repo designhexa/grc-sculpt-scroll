@@ -310,29 +310,29 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
-  // Geser pivot ke kanan untuk mendorong bagian belakang ke kanan
-  const PIVOT_X = 6.5; // geser pivot lebih ke kanan
-  const WHEEL_OFFSET_X = -1.5; // geser wheel relatif pivot agar depan tetap di tengah
+  // Pivot di depan sedikit supaya roda miring ke belakang kanan
+  const PIVOT_X = 2;      // pivot di depan (sumbu rotasi)
+  const WHEEL_OFFSET_X = -2; // geser wheel relatif pivot, agar depan di tengah
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(0, 0, 0); // kamera melihat ke tengah layar
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // Rotasi dari belakang ke depan tetap
+      // Rotasi dari belakang ke depan
       wheelPivot.current.rotation.x -= rotationSpeed;
     }
   });
 
   return (
-    <group position={[PIVOT_X, 0, 0]}>       {/* pivot digeser ke kanan */}
+    <group position={[PIVOT_X, 0, 0]}>
       <group ref={wheelPivot} position={[WHEEL_OFFSET_X, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
-          rotation={0}   // rotasi wheel tidak diubah
+          rotation={0} // rotation group internal tetap 0
         />
       </group>
     </group>
