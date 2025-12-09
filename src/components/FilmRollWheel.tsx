@@ -313,7 +313,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   // Pivot tetap di kanan layar (POV)
   const WHEEL_PIVOT_X = 5;   
   // Geser wheel lebih ke kiri agar bagian depan muncul di tengah
-  const WHEEL_SHIFT_LEFT = -3.2; // nilai lebih besar dari sebelumnya
+  const WHEEL_SHIFT_LEFT = -5; // nilai lebih besar dari sebelumnya
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
