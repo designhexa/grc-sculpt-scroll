@@ -316,25 +316,24 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
 
   useEffect(() => {
     camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
-    camera.lookAt(WHEEL_SCREEN_X, 0, 0);
+    camera.lookAt(0, 0, 0); // fokus ke tengah scene
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // Rotasi wheel dari belakang ke depan
-      wheelPivot.current.rotation.x -= rotationSpeed; // dibalik tanda
-      // opsional tilt agar kartu sedikit miring
-      wheelPivot.current.rotation.z = 0.15;
+      // Rotasi maju-mundur
+      wheelPivot.current.rotation.x -= rotationSpeed;
+      wheelPivot.current.rotation.z = 0.15; // tilt optional
     }
   });
 
   return (
-    <group position={[WHEEL_SCREEN_X, 0, 0]}>
-      <group ref={wheelPivot}>
+    <group position={[0, 0, 0]}> {/* Pindahkan ke tengah scene */}
+      <group ref={wheelPivot} rotation={[Math.PI / 6, 0, 0]}> {/* rotate awal supaya depan menghadap tengah */}
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
-          rotation={0} // tidak dipakai
+          rotation={0}
         />
       </group>
     </group>
