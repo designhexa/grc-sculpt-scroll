@@ -53,12 +53,15 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
 
   // Mirror posisi supaya sisi kiri lebih dekat kamera
   const y = Math.sin(angle) * radius;
-  const z = -Math.cos(angle) * radius; // tanda minus untuk mirror
-  const rotationY = 0;
-  const rotationZ = -angle; // rotasi sesuai sumbu Z
+  const z = Math.cos(angle) * radius;
+
+  // Orientasi kartu menghadap pusat wheel
+  const rotationX = 0; 
+  const rotationY = -angle; 
+  const rotationZ = 0;
 
   return (
-    <group position={[0, y, z]} rotation={[0, rotationY, rotationZ]}>
+    <group position={[0, y, z]} rotation={[rotationX, rotationY, rotationZ]}>
       {/* Card frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
