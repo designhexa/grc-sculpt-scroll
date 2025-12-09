@@ -163,38 +163,6 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
         <meshStandardMaterial color="#0f0f1a" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Connecting arms - from hub to cards */}
-      {Array.from({ length: cardCount }, (_, i) => {
-        const armAngle = (i / cardCount) * Math.PI * 2;
-        const innerR = 2.5;
-        const outerR = radius - 0.6;
-        
-        const innerY = Math.sin(armAngle) * innerR;
-        const innerZ = Math.cos(armAngle) * innerR;
-        const outerY = Math.sin(armAngle) * outerR;
-        const outerZ = Math.cos(armAngle) * outerR;
-        
-        const midY = (innerY + outerY) / 2;
-        const midZ = (innerZ + outerZ) / 2;
-        const armLength = outerR - innerR;
-
-        return (
-          <group key={i}>
-            {/* Main arm */}
-            <mesh position={[0, midY, midZ]} rotation={[-armAngle, 0, 0]}>
-              <boxGeometry args={[0.1, armLength, 0.08]} />
-              <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
-            </mesh>
-            
-            {/* Joint at card end */}
-            <mesh position={[0, outerY, outerZ]}>
-              <sphereGeometry args={[0.18, 16, 16]} />
-              <meshStandardMaterial color="#00aaff" metalness={0.8} roughness={0.2} emissive="#00aaff" emissiveIntensity={0.3} />
-            </mesh>
-          </group>
-        );
-      })}
-
       {/* Cards - positioned on the wheel */}
       {ornamentData.map((data, index) => (
         <Card
