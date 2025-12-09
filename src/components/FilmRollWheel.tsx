@@ -51,15 +51,14 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
-  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
+  // Mirror posisi supaya sisi kiri lebih dekat kamera
   const y = Math.sin(angle) * radius;
-  const z = Math.cos(angle) * radius;
-  // Keep cards upright and facing camera
-  const rotationX = -angle;
+  const z = -Math.cos(angle) * radius; // tanda minus untuk mirror
+  const rotationY = 0;
+  const rotationZ = -angle; // rotasi sesuai sumbu Z
 
   return (
-    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
+    <group position={[0, y, z]} rotation={[0, rotationY, rotationZ]}>
       {/* Card frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
@@ -72,7 +71,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
         />
       </mesh>
 
-      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
+      {/* Main card */}
       <mesh
         ref={meshRef}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -82,16 +81,16 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
       >
         <boxGeometry args={[3.8, 2.6, 0.15]} />
         <meshStandardMaterial
-      map={texture}
-      metalness={0.1}
-      roughness={0.5}
-      emissive={isSelected ? "#00aaff" : "#000000"}
-      emissiveIntensity={isSelected ? 0.2 : 0}
-      side={THREE.DoubleSide}
-    />
+          map={texture}
+          metalness={0.1}
+          roughness={0.5}
+          emissive={isSelected ? "#00aaff" : "#000000"}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
-      {/* Neon edge glow - front side */}
+      {/* Neon edge */}
       <mesh position={[0, 0, 0.09]}>
         <boxGeometry args={[3.9, 2.7, 0.01]} />
         <meshBasicMaterial
@@ -326,8 +325,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // hanya wheel yang berputar
-      wheelPivot.current.rotation.z += rotationSpeed;
+      wheelPivot.current.rotation.y += rotationSpeed; // horizontal
+      // wheelPivot.current.rotation.z += rotationSpeedZ; // optional tilt
     }
   });
 
