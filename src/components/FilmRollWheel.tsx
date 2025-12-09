@@ -285,14 +285,13 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | null; onSelect: (id: number | null) => void; isAutoPlaying: boolean }) {
+function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const [rotation, setRotation] = useState(0);
 
   useFrame((_, delta) => {
     if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
-  // Wheel pivot at right edge of screen
   const wheelPivotX = 16;
 
   return (
@@ -304,9 +303,20 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel positioned at right, only left half visible */}
+      {/* FIX: kamera stay, tidak ikut berputar */}
+      {/** ⬇️ Tambahkan di sini */}
+      <useFrame
+        fn={({ camera }) => {
+          camera.lookAt(wheelPivotX, 0, 0);
+        }}
+      />
+
       <group position={[wheelPivotX, 0, 0]}>
-        <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
+        <RoboticWheel
+          selectedId={selectedId}
+          onSelect={onSelect}
+          rotation={rotation}
+        />
       </group>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
