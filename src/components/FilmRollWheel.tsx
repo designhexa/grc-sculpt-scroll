@@ -310,7 +310,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
     if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
-  const wheelPivotX = 16;
+  // Geser wheel jauh ke kanan layar
+  const wheelScreenOffset = 12; // > semakin besar semakin ke kanan
 
   return (
     <>
@@ -321,8 +322,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel tetap di kanan space world */}
-      <group position={[wheelPivotX, 0, 0]}>
+      {/* Wheel dipindah ke kanan layar */}
+      <group position={[wheelScreenOffset, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
@@ -330,42 +331,30 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
         />
       </group>
 
-      {/* Floor */}
+      {/* Lantai */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial 
-          color="#B0B0B0"
-          metalness={0.5}
-          roughness={0.8}
-        />
+        <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* FIX: Kamera diposisikan ke kiri, melihat ke wheel */}
-      <PerspectiveCamera
-        makeDefault
-        position={[-10, 0, 20]}  // kamera digeser ke kiri → wheel muncul di kanan layar
-        fov={50}
-      />
+      {/* Kamera lebih dekat */}
+      <PerspectiveCamera makeDefault position={[0, 0, 18]} fov={50} />
 
-      {/* Kamera tetap melihat wheel */}
-      <CameraLookAt target={[wheelPivotX, 0, 0]} />
-
-      {/* Zoom masih bisa dipakai */}
+      {/* FIX: Kamera tidak mengikuti wheel — target tetap pusat layar */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
         enableZoom={true}
-        minDistance={15}
-        maxDistance={35}
-        target={[wheelPivotX, 0, 0]}
+        minDistance={12}
+        maxDistance={30}
+        target={[0, 0, 0]}   // PENTING! bukan wheelScreenOffset
       />
 
       <Environment preset="night" background={false} />
     </>
   );
 }
-
 
 // Helper: Kamera lookAt tanpa error
 function CameraLookAt({ target }) {
