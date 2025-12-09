@@ -146,8 +146,8 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
         </mesh>
 
         {/* Outer ring */}
-        <mesh position={[0, 0.6, 0]}>
-          <torusGeometry args={[2.2, 0.12, 16, 64]} />
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
           <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
         </mesh>
 
