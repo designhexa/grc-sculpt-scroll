@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, Suspense } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { PerspectiveCamera, Html, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
@@ -51,15 +51,14 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
-  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
-  // Keep cards upright and facing camera
   const rotationX = -angle;
 
+  const scale = THREE.MathUtils.mapLinear(z, -radius, radius, 0.6, 1.0);
+
   return (
-    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
+    <group position={[0, y, z]} rotation={[rotationX, 0, 0]} scale={[scale, scale, scale]}>
       {/* Card frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
@@ -72,7 +71,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
         />
       </mesh>
 
-      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
+      {/* Main texture card */}
       <mesh
         ref={meshRef}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -82,16 +81,16 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
       >
         <boxGeometry args={[3.8, 2.6, 0.15]} />
         <meshStandardMaterial
-      map={texture}
-      metalness={0.1}
-      roughness={0.5}
-      emissive={isSelected ? "#00aaff" : "#000000"}
-      emissiveIntensity={isSelected ? 0.2 : 0}
-      side={THREE.DoubleSide}
-    />
+          map={texture}
+          metalness={0.1}
+          roughness={0.5}
+          emissive={isSelected ? "#00aaff" : "#000000"}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
-      {/* Neon edge glow - front side */}
+      {/* Neon glow */}
       <mesh position={[0, 0, 0.09]}>
         <boxGeometry args={[3.9, 2.7, 0.01]} />
         <meshBasicMaterial
@@ -102,12 +101,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
       </mesh>
 
       {/* Label */}
-      <Html
-        position={[0, -1.8, 0.2]}
-        center
-        distanceFactor={10}
-        style={{ pointerEvents: "none" }}
-      >
+      <Html position={[0, -1.8, 0.2]} center distanceFactor={10} style={{ pointerEvents: "none" }}>
         <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-cyan-400/50 whitespace-nowrap shadow-lg">
           <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
             ORN. {data.id}
@@ -118,70 +112,27 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   );
 }
 
-function RoboticWheel({
-  selectedId,
-  onSelect,
-  rotation,
-}: {
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-  rotation: number;
-}) {
+function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number | null; onSelect: (id: number | null) => void; rotation: number; }) {
   const radius = WHEEL_RADIUS;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
-  // NOTE: jangan set position di sini — kontrol posisi dari Scene
   return (
     <group rotation={[rotation, 0, 0]}>
-      {/* Central hub - robotic style, rotated to face camera */}
       <group rotation={[Math.PI / 2, 0, 0]}>
-        {/* Main cylinder core */}
+        {/* Hub */}
         <mesh>
           <cylinderGeometry args={[2, 2, 1, 32]} />
           <meshStandardMaterial color="#0a0a15" metalness={0.95} roughness={0.05} />
         </mesh>
-
-        {/* Outer ring (rotated to match wheel plane) */}
+        {/* Outer ring */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
           <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
         </mesh>
-
-        {/* Hexagonal bolts */}
-        {Array.from({ length: 8 }, (_, i) => {
-          const boltAngle = (i / 8) * Math.PI * 2;
-          return (
-            <mesh
-              key={i}
-              position={[Math.cos(boltAngle) * 1.8, 0.55, Math.sin(boltAngle) * 1.8]}
-            >
-              <cylinderGeometry args={[0.1, 0.1, 0.2, 6]} />
-              <meshStandardMaterial
-                color="#00aaff"
-                metalness={0.9}
-                roughness={0.1}
-                emissive="#00aaff"
-                emissiveIntensity={0.4}
-              />
-            </mesh>
-          );
-        })}
       </group>
 
-      {/* Outer structural ring - vertical plane facing camera */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
-        <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
-      </mesh>
-
-      {/* Inner structural ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius - 0.4, 0.15, 8, 64]} />
-        <meshStandardMaterial color="#0f0f1a" metalness={0.9} roughness={0.1} />
-      </mesh>
-
-      {/* Cards - positioned on the wheel */}
+      {/* Cards */}
       {ornamentData.map((data, index) => (
         <Card
           key={data.id}
@@ -203,38 +154,24 @@ interface DetailPanelProps {
 
 function DetailPanel({ data, onClose }: DetailPanelProps) {
   if (!data) return null;
-
   return (
     <div className="absolute left-6 md:left-12 top-24 bottom-8 w-[380px] md:w-[480px] z-30 animate-fade-in">
-      {/* Glassmorphism container - more transparent */}
       <div className="h-full flex flex-col bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_64px_rgba(0,255,255,0.08)] overflow-hidden">
-        
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(0,255,255,0.6)]" />
-              <h2 className="text-2xl font-light text-white tracking-[0.3em] uppercase">
-                {data.name}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 flex items-center justify-center transition-all hover:scale-110"
-            >
-              <span className="text-white text-xl font-light">×</span>
-            </button>
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(0,255,255,0.6)]" />
+            <h2 className="text-2xl font-light text-white tracking-[0.3em] uppercase">{data.name}</h2>
           </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 flex items-center justify-center transition-all hover:scale-110">
+            <span className="text-white text-xl font-light">×</span>
+          </button>
         </div>
 
         {/* Image preview */}
         <div className="p-6">
           <div className="aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative">
-            <img
-              src={data.texture}
-              alt={data.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={data.texture} alt={data.name} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-4">
               <span className="px-3 py-1 bg-cyan-500/20 backdrop-blur-md rounded-full text-xs font-mono text-cyan-300 uppercase tracking-wider border border-cyan-400/30">
@@ -246,42 +183,29 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
 
         {/* Description */}
         <div className="px-6 pb-4">
-          <p className="text-sm text-gray-300 leading-relaxed font-light">
-            {data.description}
-          </p>
+          <p className="text-sm text-gray-300 leading-relaxed font-light">{data.description}</p>
         </div>
 
-        {/* Specifications grid */}
+        {/* Specs */}
         <div className="flex-1 px-6 pb-6 overflow-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           <h3 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
             <div className="w-8 h-[1px] bg-cyan-400/50" />
             Spesifikasi Teknis
             <div className="flex-1 h-[1px] bg-white/10" />
           </h3>
-          
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(data.specs).map(([key, value]) => (
-              <div
-                key={key}
-                className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-400/30 transition-colors"
-              >
+              <div key={key} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-400/30 transition-colors">
                 <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
-                  {key === "material" ? "Material" 
-                    : key === "dimensions" ? "Dimensi"
-                    : key === "weight" ? "Berat"
-                    : key === "finish" ? "Finishing"
-                    : key === "category" ? "Kategori"
-                    : "Garansi"}
+                  {key === "material" ? "Material" : key === "dimensions" ? "Dimensi" : key === "weight" ? "Berat" : key === "finish" ? "Finishing" : key === "category" ? "Kategori" : "Garansi"}
                 </span>
-                <span className="text-sm font-medium text-white">
-                  {value}
-                </span>
+                <span className="text-sm font-medium text-white">{value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer actions */}
+        {/* Footer */}
         <div className="p-6 border-t border-white/10">
           <button className="w-full py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 font-mono text-sm uppercase tracking-wider transition-all hover:shadow-[0_0_30px_rgba(0,255,255,0.2)]">
             Hubungi Kami
@@ -307,62 +231,35 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
-  // Geser wheel ke kanan layar (fix)
-  const WHEEL_SCREEN_X = 4.2;   // perbesar → lebih ke kanan
-  const CAMERA_Z = 12;           // zoom lebih dekat
-  const CAMERA_X = 0;           // kamera tetap di tengah layar
-  const CAMERA_Y = 0.5;
-
-  // rotation wheel
+  const WHEEL_SCREEN_X = -3;
+  const CAMERA_X = 0;
+  const CAMERA_Y = 2;
+  const CAMERA_Z = 12;
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
   useEffect(() => {
-    // Posisi kamera fix total
     camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
-
-    // Kamera MELIHAT ke pivot yang berada di kanan layar
     camera.lookAt(WHEEL_SCREEN_X, 0, 0);
   }, []);
 
   useFrame(() => {
-    if (wheelPivot.current) {
-      // hanya wheel yang berputar
-      wheelPivot.current.rotation.z += rotationSpeed;
-    }
+    if (wheelPivot.current) wheelPivot.current.rotation.z += rotationSpeed;
   });
 
   return (
-    <>
-      {/* geser semua objek wheel ke kanan layar */}
-      <group position={[WHEEL_SCREEN_X, 0, 0]}>
-        {/* pivot wheel → harus berada tepat di kanan */}
-        <group ref={wheelPivot}>
-          <RoboticWheel
-            selectedId={selectedId}
-            onSelect={onSelect}
-            rotation={0} // TIDAK DIPAKAI, wheelPivot yang diputar
-          />
-        </group>
+    <group position={[WHEEL_SCREEN_X, 0, 0]}>
+      <group ref={wheelPivot}>
+        <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={0} />
       </group>
-    </>
+    </group>
   );
-}
-
-// Helper: Kamera lookAt tanpa error
-function CameraLookAt({ target }) {
-  useFrame(({ camera }) => {
-    camera.lookAt(...target);
-  });
-  return null;
 }
 
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  const selectedData = selectedId
-    ? ornamentData.find((o) => o.id === selectedId) || null
-    : null;
+  const selectedData = selectedId ? ornamentData.find(o => o.id === selectedId) || null : null;
 
   const handleSelect = (id: number | null) => {
     setSelectedId(id);
@@ -370,35 +267,36 @@ export default function FilmRollWheel() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#080810] overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_right,_rgba(0,255,255,0.05)_0%,_transparent_60%)] pointer-events-none z-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,_rgba(0,136,255,0.03)_0%,_transparent_40%)] pointer-events-none z-0" />
+    <div className="relative w-full h-screen overflow-hidden">
+      <Canvas onCreated={({ gl }) => gl.setClearColor(new THREE.Color("#87CEEB"))}>
+        <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={50} />
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[10, 10, 5]} intensity={1.2} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
+        </Suspense>
+      </Canvas>
 
-      {/* Header - minimal futuristic */}
-      <div className="absolute top-0 left-0 right-0 h-20 z-20">
-        <div className="h-full px-6 md:px-12 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_15px_hsl(var(--accent))]" />
-            <h1 className="text-lg md:text-xl font-light text-foreground tracking-[0.4em] uppercase">
-              GRC Ornaments
-            </h1>
-          </div>
-          <button
-            onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-            className={`px-6 py-2.5 rounded-full border transition-all font-mono text-xs uppercase tracking-widest ${
-              isAutoPlaying
-                ? "bg-accent/20 border-accent/50 text-accent shadow-[0_0_20px_rgba(0,255,255,0.2)]"
-                : "bg-background/20 border-accent/20 text-muted-foreground hover:border-accent/40"
-            }`}
-          >
-            {isAutoPlaying ? "◼ PAUSE" : "▶ PLAY"}
-          </button>
-        </div>
-      </div>
-
-      {/* Detail Panel - left side glassmorphism */}
+      {/* Detail panel kiri */}
       <DetailPanel data={selectedData} onClose={() => setSelectedId(null)} />
+
+      {/* Header & tombol Play/Pause */}
+      <div className="absolute top-0 left-0 right-0 h-20 z-20 flex items-center justify-between px-6 md:px-12">
+        <div className="flex items-center gap-4">
+          <div className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_15px_hsl(var(--accent))]" />
+          <h1 className="text-lg md:text-xl font-light text-foreground tracking-[0.4em] uppercase">GRC Ornaments</h1>
+        </div>
+        <button
+          onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+          className={`px-6 py-2.5 rounded-full border transition-all font-mono text-xs uppercase tracking-widest ${
+            isAutoPlaying
+              ? "bg-accent/20 border-accent/50 text-accent shadow-[0_0_20px_rgba(0,255,255,0.2)]"
+              : "bg-background/20 border-accent/20 text-muted-foreground hover:border-accent/40"
+          }`}
+        >
+          {isAutoPlaying ? "◼ PAUSE" : "▶ PLAY"}
+        </button>
+      </div>
 
       {/* Instructions */}
       {!selectedId && (
@@ -411,24 +309,6 @@ export default function FilmRollWheel() {
           </div>
         </div>
       )}
-
-      {/* 3D Canvas */}
-      <div className="absolute inset-0 z-10">
-        <Suspense fallback={<LoadingFallback />}>
-          <Canvas
-            style={{ background: "#87CEEB" }} // sky blue
-          >
-            {/* Kamera */}
-            <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={50} />
-
-            {/* Cahaya */}
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[10, 10, 5]} intensity={1.2} />
-
-            <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
-          </Canvas>
-        </Suspense>
-      </div>
     </div>
   );
 }
