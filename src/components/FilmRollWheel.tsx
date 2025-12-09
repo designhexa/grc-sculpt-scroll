@@ -51,15 +51,18 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
-  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
+  // posisi dasar pada wheel
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
-  // Keep cards upright and facing camera
+
+  // OFFSET untuk mendorong belakang ke kanan
+  // misal: card terakhir (belakang) ada di z + 12
+  const offsetX = data.id === ornamentData.length ? 12 : 0;
+
   const rotationX = -angle;
 
   return (
-    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
+    <group position={[offsetX, y, z]} rotation={[rotationX, 0, 0]}>
       {/* Card frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
@@ -303,26 +306,33 @@ function LoadingFallback() {
   );
 }
 
-function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const texture = useTexture(data.texture);
+function Scene({ selectedId, onSelect, isAutoPlaying }) {
+  const wheelPivot = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const CAMERA_POS = [0, 0.5, 12];
+  const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
+  useEffect(() => {
+    camera.position.set(...CAMERA_POS);
+    camera.lookAt(0, 0, 0);
+  }, []);
 
-  // posisi dasar pada wheel
-  const y = Math.sin(angle) * radius;
-  const z = Math.cos(angle) * radius;
-
-  // OFFSET untuk mendorong belakang ke kanan
-  // misal: card terakhir (belakang) ada di z + 12
-  const offsetX = data.id === ornamentData.length ? 12 : 0;
-
-  const rotationX = -angle;
+  useFrame(() => {
+    if (wheelPivot.current) {
+      wheelPivot.current.rotation.x -= rotationSpeed; // belakang → depan
+    }
+  });
 
   return (
-    <group position={[offsetX, y, z]} rotation={[rotationX, 0, 0]}>
-      ...
+    // Pivot digeser ke kanan agar belakang terdorong ke kanan
+    <group position={[12, 0, 0]}> 
+      <group ref={wheelPivot} position={[0, 0, 0]}>
+        <RoboticWheel
+          selectedId={selectedId}
+          onSelect={onSelect}
+          rotation={0} // rotasi tetap
+        />
+      </group>
     </group>
   );
 }
