@@ -1,6 +1,6 @@
-import { useRef, useState, Suspense } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Environment, Html, useTexture } from "@react-three/drei";
-import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import grcOrnament from "@/assets/grc-ornament.jpg";
 
@@ -303,47 +303,48 @@ function LoadingFallback() {
   );
 }
 
-function Scene() {
+function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
-  // Seberapa jauh obyek digeser ke kanan layar
-  const WHEEL_SCREEN_OFFSET = 2.2;   // naikin lagi kalau mau lebih kanan
-  const CAMERA_Z = 4;                // zoom lebih dekat
-  const CAMERA_X = 1.2;              // sedikit geser ke kanan supaya wheel terlihat setengah
-  const CAMERA_Y = 0.5;              // sedikit ke atas
+  // Geser wheel ke kanan layar (fix)
+  const WHEEL_SCREEN_X = 4.2;   // perbesar → lebih ke kanan
+  const CAMERA_Z = 6;           // zoom lebih dekat
+  const CAMERA_X = 0;           // kamera tetap di tengah layar
+  const CAMERA_Y = 0.5;
+
+  // rotation wheel
+  const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
   useEffect(() => {
-    // Set camera fix position
+    // Posisi kamera fix total
     camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
 
-    // Kamera selalu melihat ke pivot wheel
-    camera.lookAt(WHEEL_SCREEN_OFFSET, 0, 0);
+    // Kamera MELIHAT ke pivot yang berada di kanan layar
+    camera.lookAt(WHEEL_SCREEN_X, 0, 0);
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // Rotasi wheel
-      wheelPivot.current.rotation.z += 0.01;
+      // hanya wheel yang berputar
+      wheelPivot.current.rotation.z += rotationSpeed;
     }
   });
 
   return (
-    <group>
-      {/* OUTER GROUP - geser wheel ke kanan layar */}
-      <group position={[WHEEL_SCREEN_OFFSET, 0, 0]}>
-        
-        {/* INNER GROUP - hanya ini yang berputar */}
+    <>
+      {/* geser semua objek wheel ke kanan layar */}
+      <group position={[WHEEL_SCREEN_X, 0, 0]}>
+        {/* pivot wheel → harus berada tepat di kanan */}
         <group ref={wheelPivot}>
           <RoboticWheel
             selectedId={selectedId}
             onSelect={onSelect}
-            rotation={rotation}
+            rotation={0} // TIDAK DIPAKAI, wheelPivot yang diputar
           />
         </group>
-
       </group>
-    </group>
+    </>
   );
 }
 
