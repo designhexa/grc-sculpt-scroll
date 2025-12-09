@@ -340,7 +340,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
 
   return (
     <>
-      <color attach="background" args={["#080810"]} />
+      <color attach="background" args={["#202020"]} />
       <fog attach="fog" args={["#080810", 30, 70]} />
 
       <ambientLight intensity={0.6} />
