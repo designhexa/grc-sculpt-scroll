@@ -45,22 +45,34 @@ interface CardProps {
 }
 
 function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const texture = useTexture(data.texture);
+  const meshRef = useRef<THREE.Group>(null);
+  const textureMeshRef = useRef<THREE.Mesh>(null);
 
+  const texture = useTexture(data.texture);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
-  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
+  // Posisi kartu mengelilingi roda
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
-  // Keep cards upright and facing camera
-  const rotationX = -angle;
+
+  // Rotasi dasar agar kartu tidak menghadap sumbu
+  const baseRotationX = Math.PI / 2 - angle;
+
+  // ROTATION BILLBOARD: selalu menghadap kamera
+  useFrame(({ camera }) => {
+    if (meshRef.current) {
+      meshRef.current.lookAt(camera.position);
+    }
+  });
 
   return (
-    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
-      {/* Card frame */}
+    <group
+      ref={meshRef}
+      position={[0, y, z]}
+      rotation={[baseRotationX, 0, 0]}
+    >
+      {/* Frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
         <meshStandardMaterial
@@ -72,10 +84,10 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
         />
       </mesh>
 
-      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
+      {/* Main textured card */}
       <mesh
-        ref={meshRef}
-        onClick={(e: ThreeEvent<MouseEvent>) => {
+        ref={textureMeshRef}
+        onClick={(e) => {
           e.stopPropagation();
           onClick();
         }}
@@ -91,7 +103,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
         />
       </mesh>
 
-      {/* Neon edge glow - front side */}
+      {/* Glow */}
       <mesh position={[0, 0, 0.09]}>
         <boxGeometry args={[3.9, 2.7, 0.01]} />
         <meshBasicMaterial
@@ -100,23 +112,10 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
           opacity={isSelected ? 0.8 : 0.3}
         />
       </mesh>
-
-      {/* Label */}
-      <Html
-        position={[0, -1.8, 0.2]}
-        center
-        distanceFactor={10}
-        style={{ pointerEvents: "none" }}
-      >
-        <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-cyan-400/50 whitespace-nowrap shadow-lg">
-          <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
-            ORN. {data.id}
-          </span>
-        </div>
-      </Html>
     </group>
   );
 }
+
 
 function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number | null; onSelect: (id: number | null) => void; rotation: number }) {
   const radius = WHEEL_RADIUS;
