@@ -309,7 +309,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
 
   // Geser wheel ke kanan layar (fix)
   const WHEEL_SCREEN_X = 4.2;   // perbesar → lebih ke kanan
-  const CAMERA_Z = 6;           // zoom lebih dekat
+  const CAMERA_Z = 12;           // zoom lebih dekat
   const CAMERA_X = 0;           // kamera tetap di tengah layar
   const CAMERA_Y = 0.5;
 
