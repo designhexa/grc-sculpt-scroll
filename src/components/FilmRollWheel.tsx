@@ -124,7 +124,7 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
   const angleStep = (Math.PI * 2) / cardCount;
 
   return (
-    <group rotation={[rotation, 0, 0]}>
+    <group rotation={[rotation, 0, 0]} position={[5, 0, 0]}>
       {/* Central hub - robotic style, rotated to face camera */}
       <group rotation={[Math.PI / 2, 0, 0]}>
         {/* Main cylinder core */}
