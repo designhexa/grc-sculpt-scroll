@@ -306,14 +306,8 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
-
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
-
-  // Pivot di kanan layar → bagian belakang bisa terdorong
-  const PIVOT_X = 12;
-  // Wheel offset relatif pivot cukup kecil agar depan tetap di tengah
-  const WHEEL_OFFSET_X = -2;  
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
@@ -322,17 +316,17 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
 
   useFrame(() => {
     if (wheelPivot.current) {
-      wheelPivot.current.rotation.x -= rotationSpeed;
+      wheelPivot.current.rotation.x -= rotationSpeed; // belakang → depan
     }
   });
 
   return (
-    <group position={[PIVOT_X, 0, 0]}>
-      <group ref={wheelPivot} position={[WHEEL_OFFSET_X, 0, 0]}>
+    <group position={[12, 0, 0]}> {/* pivot di kanan layar */}
+      <group ref={wheelPivot} position={[0, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
-          rotation={0}
+          rotation={0} // rotasi tetap
         />
       </group>
     </group>
