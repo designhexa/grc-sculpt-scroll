@@ -306,46 +306,52 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | null; onSelect: (id: number | null) => void; isAutoPlaying: boolean }) {
   const [rotation, setRotation] = useState(0);
 
-  // Wheel pivot moved further to the right so the wheel appears to stick out of the screen
-  const wheelPivotX = 22;
-
-  // Update wheel rotation only (camera stays fixed).
-  // Negative sign reverses rotation direction so left side moves forward toward camera.
+  // Putar wheel — arah dibalik supaya sisi kiri mendekat ke kamera
   useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r - delta * 0.12);
+    if (isAutoPlaying) setRotation((r) => r - delta * 0.12); // <-- note the minus sign
   });
+
+  // Geser wheel jauh ke kanan agar 2/3 body ada di kanan layar
+  const wheelPivotX = 28; // sesuaikan kalau mau lebih/kurang ke kanan
 
   return (
     <>
-      {/* scene background & fog */}
+      {/* background + fog */}
       <color attach="background" args={["#202020"]} />
       <fog attach="fog" args={["#080810", 30, 70]} />
 
-      {/* lights */}
+      {/* lighting */}
       <ambientLight intensity={0.6} />
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel: rotated around X only, positioned to the right */}
+      {/* Wheel (posisi dikontrol di sini) */}
       <group position={[wheelPivotX, 0, 0]}>
-        <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
+        <RoboticWheel
+          selectedId={selectedId}
+          onSelect={onSelect}
+          rotation={rotation}
+        />
       </group>
 
-      {/* Floor / ground */}
+      {/* Floor / alas */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* Fixed camera — moved closer and slightly left to make left side of wheel appear nearer */}
-      <PerspectiveCamera makeDefault position={[-6, 0, 14]} fov={50} />
+      {/* Kamera default — lebih dekat (zoom default lebih dekat ke layar) */}
+      <PerspectiveCamera makeDefault position={[-6, 0, 12]} fov={50} />
 
-      {/* Disable controls so camera stays fixed */}
+      {/* OrbitControls: kamera tidak berputar, tetapi zoom diperbolehkan */}
       <OrbitControls
-        enableRotate={false}
+        enableDamping
+        dampingFactor={0.05}
         enablePan={false}
-        enableZoom={false}
-        enableDamping={false}
+        enableRotate={false}   // kamera tetap stabil (tidak berputar)
+        enableZoom={true}      // user masih bisa zoom in/out
+        minDistance={8}
+        maxDistance={40}
         target={[wheelPivotX, 0, 0]}
       />
 
