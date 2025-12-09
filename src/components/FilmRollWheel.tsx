@@ -334,6 +334,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
         />
       </group>
 
+
       {/* Floor / alas */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
@@ -341,18 +342,22 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
       </mesh>
 
       {/* Kamera default — lebih dekat (zoom default lebih dekat ke layar) */}
-      <PerspectiveCamera makeDefault position={[-6, 0, 12]} fov={50} />
+      <PerspectiveCamera
+        makeDefault
+        position={[0, 0, 20]}    // kamera tetap di tengah, tidak condong ke kanan
+        fov={50}
+      />
+
 
       {/* OrbitControls: kamera tidak berputar, tetapi zoom diperbolehkan */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
-        enableRotate={false}   // kamera tetap stabil (tidak berputar)
-        enableZoom={true}      // user masih bisa zoom in/out
-        minDistance={8}
-        maxDistance={40}
-        target={[wheelPivotX, 0, 0]}
+        enableZoom={true}
+        minDistance={10}
+        maxDistance={30}
+        target={[wheelPivotX, 0, 0]}   // kamera akan melihat ke wheel saat user zoom/pan
       />
 
       <Environment preset="night" background={false} />
