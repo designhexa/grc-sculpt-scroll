@@ -416,12 +416,21 @@ export default function FilmRollWheel() {
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
           <Canvas>
-            <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={45} />
-            <Scene
-              selectedId={selectedId}
-              onSelect={handleSelect}
-              isAutoPlaying={isAutoPlaying}
+            {/* Kamera */}
+            <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={50} />
+
+            {/* Cahaya global */}
+            <ambientLight intensity={0.8} />   {/* default 0.5, dinaikkan biar terang */}
+            
+            {/* Cahaya arah */}
+            <directionalLight 
+              position={[10, 10, 5]} 
+              intensity={1.2} 
+              castShadow 
             />
+            
+            {/* Scene */}
+            <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
           </Canvas>
         </Suspense>
       </div>
