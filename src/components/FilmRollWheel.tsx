@@ -293,7 +293,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
   });
 
   // Wheel pivot at right edge of screen
-  const wheelPivotX = 8;
+  const wheelPivotX = 16;
 
   return (
     <>
