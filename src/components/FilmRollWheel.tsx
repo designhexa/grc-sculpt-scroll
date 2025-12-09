@@ -45,77 +45,85 @@ interface CardProps {
 }
 
 function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
-  const meshRef = useRef<THREE.Group>(null);
   const textureMeshRef = useRef<THREE.Mesh>(null);
+  const billboardRef = useRef<THREE.Group>(null);
 
+  // Load texture
   const texture = useTexture(data.texture);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Posisi kartu mengelilingi roda
+  // posisi melingkar
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
 
-  // Rotasi dasar agar kartu tidak menghadap sumbu
-  const baseRotationX = Math.PI / 2 - angle;
+  // rotasi agar menghadap keluar lingkaran
+  const rotationY = angle + Math.PI;
 
-  // ROTATION BILLBOARD: selalu menghadap kamera
+  // billboard always face camera
   useFrame(({ camera }) => {
-    if (meshRef.current) {
-      meshRef.current.lookAt(camera.position);
+    if (billboardRef.current) {
+      billboardRef.current.lookAt(camera.position);
+
+      // Because Three.js front face is -Z, we flip to correct
+      billboardRef.current.rotation.y += Math.PI;
     }
   });
 
   return (
     <group
-      ref={meshRef}
       position={[0, y, z]}
-      rotation={[baseRotationX, 0, 0]}
+      rotation={[0, rotationY, 0]}
     >
-      {/* Frame */}
-      <mesh position={[0, 0, 0.1]}>
-        <boxGeometry args={[4, 2.8, 0.05]} />
-        <meshStandardMaterial
-          color={isSelected ? "#00ffff" : "#1a1a2e"}
-          metalness={0.9}
-          roughness={0.1}
-          emissive={isSelected ? "#00ffff" : "#0a0a15"}
-          emissiveIntensity={isSelected ? 0.3 : 0.1}
-        />
-      </mesh>
+      {/* Billboard layer */}
+      <group ref={billboardRef}>
+        
+        {/* Frame */}
+        <mesh position={[0, 0, 0.1]}>
+          <boxGeometry args={[4, 2.8, 0.05]} />
+          <meshStandardMaterial
+            color={isSelected ? "#00ffff" : "#1a1a2e"}
+            metalness={0.9}
+            roughness={0.1}
+            emissive={isSelected ? "#00ffff" : "#0a0a15"}
+            emissiveIntensity={isSelected ? 0.3 : 0.1}
+          />
+        </mesh>
 
-      {/* Main textured card */}
-      <mesh
-        ref={textureMeshRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-      >
-        <boxGeometry args={[3.8, 2.6, 0.15]} />
-        <meshStandardMaterial
-          map={texture}
-          metalness={0.1}
-          roughness={0.5}
-          emissive={isSelected ? "#00aaff" : "#000000"}
-          emissiveIntensity={isSelected ? 0.2 : 0}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+        {/* Main textured card */}
+        <mesh
+          ref={textureMeshRef}
+          position={[0, 0, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+        >
+          <boxGeometry args={[3.8, 2.6, 0.15]} />
+          <meshStandardMaterial
+            map={texture}
+            metalness={0.1}
+            roughness={0.5}
+            emissive={isSelected ? "#00aaff" : "#000000"}
+            emissiveIntensity={isSelected ? 0.2 : 0}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
 
-      {/* Glow */}
-      <mesh position={[0, 0, 0.09]}>
-        <boxGeometry args={[3.9, 2.7, 0.01]} />
-        <meshBasicMaterial
-          color={isSelected ? "#00ffff" : "#334455"}
-          transparent
-          opacity={isSelected ? 0.8 : 0.3}
-        />
-      </mesh>
+        {/* Glow */}
+        <mesh position={[0, 0, 0.09]}>
+          <boxGeometry args={[3.9, 2.7, 0.01]} />
+          <meshBasicMaterial
+            color={isSelected ? "#00ffff" : "#334455"}
+            transparent
+            opacity={isSelected ? 0.8 : 0.3}
+          />
+        </mesh>
+
+      </group>
     </group>
   );
 }
-
 
 function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number | null; onSelect: (id: number | null) => void; rotation: number }) {
   const radius = WHEEL_RADIUS;
