@@ -328,12 +328,12 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   });
 
   return (
-    <group position={[WHEEL_PIVOT_X, 0, 0]}>
-      <group ref={wheelPivot} position={[WHEEL_SHIFT_LEFT, 0, 0]}>
+    <group position={[PIVOT_X, 0, 0]}>       {/* pivot lebih ke kanan */}
+      <group ref={wheelPivot} position={[WHEEL_OFFSET_X, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
-          rotation={0}
+          rotation={0} 
         />
       </group>
     </group>
