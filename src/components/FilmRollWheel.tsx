@@ -304,31 +304,30 @@ function LoadingFallback() {
 }
 
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
-  const wheelPivot = useRef<THREE.Group>(null);
+  const wheelGroup = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
-  // Pivot tetap di kanan layar
+  // Pivot hanya untuk geser POV ke kanan
   const PIVOT_X = 5.0; 
-  const WHEEL_OFFSET_X = -5.0; // geser wheel ke kiri relatif pivot
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
-    camera.lookAt(0, 0, 0); // lihat ke tengah layar
+    camera.lookAt(0, 0, 0); // bagian depan tetap di tengah layar
   }, []);
 
   useFrame(() => {
-    if (wheelPivot.current) {
-      // rotasi dari belakang ke depan → sumbu Z
-      wheelPivot.current.rotation.z += rotationSpeed;
+    if (wheelGroup.current) {
+      // Animasi dari belakang ke depan → rotasi wheel di sumbu Z lokal
+      wheelGroup.current.rotation.z += rotationSpeed;
     }
   });
 
   return (
-    <group position={[PIVOT_X, 0, 0]}>       {/* pivot di kanan layar */}
-      <group ref={wheelPivot} position={[WHEEL_OFFSET_X, 0, 0]}>
+    <group position={[PIVOT_X, 0, 0]}>  {/* pivot di kanan layar */}
+      <group ref={wheelGroup}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
