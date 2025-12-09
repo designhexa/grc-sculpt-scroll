@@ -292,17 +292,6 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
   );
 }
 
-function LoadingFallback() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-        <p className="text-muted-foreground font-mono text-sm tracking-wider">LOADING...</p>
-      </div>
-    </div>
-  );
-}
-
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
