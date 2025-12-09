@@ -51,8 +51,9 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
+  // sisi kiri dekat kamera, sisi kanan jauh
   const y = Math.sin(angle) * radius;
-  const z = Math.cos(angle) * radius;
+  const z = -Math.cos(angle) * radius; // tambahkan minus untuk mirror
   const rotationX = -angle;
 
   const scale = THREE.MathUtils.mapLinear(z, -radius, radius, 0.6, 1.0);
