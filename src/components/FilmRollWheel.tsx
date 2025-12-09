@@ -118,13 +118,22 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   );
 }
 
-function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number | null; onSelect: (id: number | null) => void; rotation: number }) {
+function RoboticWheel({
+  selectedId,
+  onSelect,
+  rotation,
+}: {
+  selectedId: number | null;
+  onSelect: (id: number | null) => void;
+  rotation: number;
+}) {
   const radius = WHEEL_RADIUS;
   const cardCount = ornamentData.length;
   const angleStep = (Math.PI * 2) / cardCount;
 
+  // NOTE: jangan set position di sini — kontrol posisi dari Scene
   return (
-    <group rotation={[rotation, 0, 0]} position={[6, 0, 0]}>
+    <group rotation={[rotation, 0, 0]}>
       {/* Central hub - robotic style, rotated to face camera */}
       <group rotation={[Math.PI / 2, 0, 0]}>
         {/* Main cylinder core */}
@@ -132,8 +141,8 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
           <cylinderGeometry args={[2, 2, 1, 32]} />
           <meshStandardMaterial color="#0a0a15" metalness={0.95} roughness={0.05} />
         </mesh>
-        
-        {/* Outer ring */}
+
+        {/* Outer ring (rotated to match wheel plane) */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
           <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
@@ -143,22 +152,31 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
         {Array.from({ length: 8 }, (_, i) => {
           const boltAngle = (i / 8) * Math.PI * 2;
           return (
-            <mesh key={i} position={[Math.cos(boltAngle) * 1.8, 0.55, Math.sin(boltAngle) * 1.8]}>
+            <mesh
+              key={i}
+              position={[Math.cos(boltAngle) * 1.8, 0.55, Math.sin(boltAngle) * 1.8]}
+            >
               <cylinderGeometry args={[0.1, 0.1, 0.2, 6]} />
-              <meshStandardMaterial color="#00aaff" metalness={0.9} roughness={0.1} emissive="#00aaff" emissiveIntensity={0.4} />
+              <meshStandardMaterial
+                color="#00aaff"
+                metalness={0.9}
+                roughness={0.1}
+                emissive="#00aaff"
+                emissiveIntensity={0.4}
+              />
             </mesh>
           );
         })}
       </group>
 
       {/* Outer structural ring - vertical plane facing camera */}
-      <mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
         <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
       </mesh>
 
       {/* Inner structural ring */}
-      <mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[radius - 0.4, 0.15, 8, 64]} />
         <meshStandardMaterial color="#0f0f1a" metalness={0.9} roughness={0.1} />
       </mesh>
@@ -285,19 +303,19 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }) {
+function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | null; onSelect: (id: number | null) => void; isAutoPlaying: boolean }) {
   const [rotation, setRotation] = useState(0);
 
-  const wheelPivotX = 16;
+  // geser roda ke kanan layar (atur sendiri kalau mau lebih/kurang)
+  const wheelPivotX = 18;
 
-  // Wheel autoplay
-  useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
-  });
+  useFrame((state, delta) => {
+    // Balik arah putaran: kurangi nilai untuk membuat sisi kiri maju ke kamera
+    if (isAutoPlaying) setRotation((r) => r - delta * 0.12);
 
-  // FIX: Kamera always look at wheelPivotX
-  useFrame(({ camera }) => {
-    camera.lookAt(wheelPivotX, 0, 0);
+    // Pastikan kamera STAND-ALONE: selalu lookAt pivot (tetap posisi)
+    // gunakan state.camera, jangan ubah posisi kamera di sini
+    state.camera.lookAt(wheelPivotX, 0, 0);
   });
 
   return (
@@ -309,24 +327,20 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
+      {/* Wheel positioned at right, only left half visible */}
       <group position={[wheelPivotX, 0, 0]}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={rotation}
-        />
+        <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
       </group>
 
-      {/* Floor */}
+      {/* Floor / base */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* Camera */}
+      {/* Kamera tetap di posisi statis — dapat diatur di sini */}
       <PerspectiveCamera makeDefault position={[-2, 0, 20]} fov={50} />
 
-      {/* Controls */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
