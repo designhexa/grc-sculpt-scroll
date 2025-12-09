@@ -303,29 +303,25 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | null; onSelect: (id: number | null) => void; isAutoPlaying: boolean }) {
+function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const [rotation, setRotation] = useState(0);
 
-  // Putar wheel — arah dibalik supaya sisi kiri mendekat ke kamera
   useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r - delta * 0.12); // <-- note the minus sign
+    if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
-  // Geser wheel jauh ke kanan agar 2/3 body ada di kanan layar
-  const wheelPivotX = 40; // sesuaikan kalau mau lebih/kurang ke kanan
+  const wheelPivotX = 16;
 
   return (
     <>
-      {/* background + fog */}
       <color attach="background" args={["#202020"]} />
       <fog attach="fog" args={["#080810", 30, 70]} />
 
-      {/* lighting */}
       <ambientLight intensity={0.6} />
       <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel (posisi dikontrol di sini) */}
+      {/* Wheel tetap di kanan space world */}
       <group position={[wheelPivotX, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
@@ -334,30 +330,35 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
         />
       </group>
 
-
-      {/* Floor / alas */}
+      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
+        <meshStandardMaterial 
+          color="#B0B0B0"
+          metalness={0.5}
+          roughness={0.8}
+        />
       </mesh>
 
-      {/* Kamera default — lebih dekat (zoom default lebih dekat ke layar) */}
+      {/* FIX: Kamera diposisikan ke kiri, melihat ke wheel */}
       <PerspectiveCamera
         makeDefault
-        position={[0, 0, 20]}    // kamera tetap di tengah, tidak condong ke kanan
+        position={[-10, 0, 20]}  // kamera digeser ke kiri → wheel muncul di kanan layar
         fov={50}
       />
 
+      {/* Kamera tetap melihat wheel */}
+      <CameraLookAt target={[wheelPivotX, 0, 0]} />
 
-      {/* OrbitControls: kamera tidak berputar, tetapi zoom diperbolehkan */}
+      {/* Zoom masih bisa dipakai */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
         enableZoom={true}
-        minDistance={10}
-        maxDistance={30}
-        target={[wheelPivotX, 0, 0]}   // kamera akan melihat ke wheel saat user zoom/pan
+        minDistance={15}
+        maxDistance={35}
+        target={[wheelPivotX, 0, 0]}
       />
 
       <Environment preset="night" background={false} />
@@ -365,6 +366,14 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
   );
 }
 
+
+// Helper: Kamera lookAt tanpa error
+function CameraLookAt({ target }) {
+  useFrame(({ camera }) => {
+    camera.lookAt(...target);
+  });
+  return null;
+}
 
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
