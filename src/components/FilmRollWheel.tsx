@@ -303,60 +303,50 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }) {
+function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | null; onSelect: (id: number | null) => void; isAutoPlaying: boolean }) {
   const [rotation, setRotation] = useState(0);
 
-  // wheel pivot di kanan
-  const wheelPivotX = 12;
+  // Wheel pivot moved further to the right so the wheel appears to stick out of the screen
+  const wheelPivotX = 22;
 
-  // Kamera fix, selalu melihat pivot
-  useFrame(({ camera }) => {
-    camera.lookAt(wheelPivotX, 0, 0);
-
-    if (isAutoPlaying) {
-      setRotation((r) => r + 0.5);     // arah putar menghadap kamera
-    }
+  // Update wheel rotation only (camera stays fixed).
+  // Negative sign reverses rotation direction so left side moves forward toward camera.
+  useFrame((_, delta) => {
+    if (isAutoPlaying) setRotation((r) => r - delta * 0.12);
   });
 
   return (
     <>
+      {/* scene background & fog */}
       <color attach="background" args={["#202020"]} />
       <fog attach="fog" args={["#080810", 30, 70]} />
 
+      {/* lights */}
       <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 10]} intensity={1.5} />
+      <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
       <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel POSISI FIX DI KANAN */}
+      {/* Wheel: rotated around X only, positioned to the right */}
       <group position={[wheelPivotX, 0, 0]}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={rotation * 0.01}  // smooth
-        />
+        <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
       </group>
 
-      {/* Floor */}
+      {/* Floor / ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* KAMERA TETAP */}
-      <PerspectiveCamera
-        makeDefault
-        position={[-6, 2, 22]}    // FIXED — tidak ikut wheel
-        fov={50}
-      />
+      {/* Fixed camera — moved closer and slightly left to make left side of wheel appear nearer */}
+      <PerspectiveCamera makeDefault position={[-6, 0, 14]} fov={50} />
 
-      {/* Controls mengikuti wheel (bukan mengikuti rotation wheel) */}
+      {/* Disable controls so camera stays fixed */}
       <OrbitControls
+        enableRotate={false}
         enablePan={false}
-        enableZoom={true}
-        enableRotate={false}  // kamera tidak ikut muter
-        minDistance={15}
-        maxDistance={30}
-        target={[wheelPivotX, 0, 0]}   // menghadap kanan
+        enableZoom={false}
+        enableDamping={false}
+        target={[wheelPivotX, 0, 0]}
       />
 
       <Environment preset="night" background={false} />
