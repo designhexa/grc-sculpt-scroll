@@ -305,45 +305,47 @@ function LoadingFallback() {
 
 function Scene() {
   const wheelPivot = useRef<THREE.Group>(null);
-  const cameraRef = useRef();
-  
-  // Titik pivot kanan layar
-  const PIVOT_X = 3.5; // geser kanan
-  const PIVOT_Y = 0;
-  const PIVOT_Z = 0;
+  const { camera } = useThree();
 
-  useFrame(({ camera }) => {
-    // Kunci kamera melihat titik kanan layar
-    camera.lookAt(PIVOT_X, PIVOT_Y, PIVOT_Z);
+  // Seberapa jauh obyek digeser ke kanan layar
+  const WHEEL_SCREEN_OFFSET = 2.2;   // naikin lagi kalau mau lebih kanan
+  const CAMERA_Z = 4;                // zoom lebih dekat
+  const CAMERA_X = 1.2;              // sedikit geser ke kanan supaya wheel terlihat setengah
+  const CAMERA_Y = 0.5;              // sedikit ke atas
+
+  useEffect(() => {
+    // Set camera fix position
+    camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
+
+    // Kamera selalu melihat ke pivot wheel
+    camera.lookAt(WHEEL_SCREEN_OFFSET, 0, 0);
+  }, []);
+
+  useFrame(() => {
+    if (wheelPivot.current) {
+      // Rotasi wheel
+      wheelPivot.current.rotation.z += 0.01;
+    }
   });
 
   return (
-    <>
-      {/* Kamera awal — langsung diarahkan ke kanan */}
-      <PerspectiveCamera
-        ref={cameraRef}
-        makeDefault
-        position={[0, 0, 6]} // dekat ke layar
-        fov={45}
-        onUpdate={(cam) => cam.lookAt(PIVOT_X, PIVOT_Y, PIVOT_Z)}
-      />
+    <group>
+      {/* OUTER GROUP - geser wheel ke kanan layar */}
+      <group position={[WHEEL_SCREEN_OFFSET, 0, 0]}>
+        
+        {/* INNER GROUP - hanya ini yang berputar */}
+        <group ref={wheelPivot}>
+          <RoboticWheel
+            selectedId={selectedId}
+            onSelect={onSelect}
+            rotation={rotation}
+          />
+        </group>
 
-      {/* OrbitControls tidak boleh mengembalikan target ke tengah */}
-      <OrbitControls
-        enableRotate={false}
-        enablePan={false}
-        enableZoom={true}
-        target={[PIVOT_X, PIVOT_Y, PIVOT_Z]}
-      />
-
-      {/* PIVOT roda dipindahkan ke kanan layar */}
-      <group ref={wheelPivot} position={[PIVOT_X, PIVOT_Y, PIVOT_Z]}>
-        <RoboticWheel rotation={[0, 0, 0]} />
       </group>
-    </>
+    </group>
   );
 }
-
 
 // Helper: Kamera lookAt tanpa error
 function CameraLookAt({ target }) {
