@@ -82,13 +82,13 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
       >
         <boxGeometry args={[3.8, 2.6, 0.15]} />
         <meshStandardMaterial
-      map={texture}
-      metalness={0.1}
-      roughness={0.5}
-      emissive={isSelected ? "#00aaff" : "#000000"}
-      emissiveIntensity={isSelected ? 0.2 : 0}
-      side={THREE.DoubleSide}
-    />
+          map={texture}
+          metalness={0.1}
+          roughness={0.5}
+          emissive={isSelected ? "#00aaff" : "#000000"}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* Neon edge glow - front side */}
