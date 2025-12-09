@@ -310,9 +310,10 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
-  // Pivot geser ke kanan sedikit
-  const PIVOT_X = 2.5;        // pivot ke kanan dari center layar
-  const WHEEL_OFFSET_X = -2.5; // geser wheel ke kiri relatif pivot
+  // Pivot digeser ke kanan layar supaya sumbu putar geser
+  const PIVOT_X = 3.5;       
+  // Geser wheel relatif pivot ke kiri supaya depan tetap di tengah
+  const WHEEL_OFFSET_X = -3.5;  
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
@@ -321,7 +322,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // animasi dari belakang ke depan
+      // Rotasi dari belakang ke depan
       wheelPivot.current.rotation.x -= rotationSpeed;
     }
   });
