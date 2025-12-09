@@ -52,7 +52,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapT = THREE.RepeatWrapping;
 
   const y = Math.sin(angle) * radius;
-  const z = -Math.cos(angle) * radius;
+  const z = Math.cos(angle) * radius;
   const rotationX = -angle;
 
   const scale = THREE.MathUtils.mapLinear(z, -radius, radius, 0.6, 1.0);
