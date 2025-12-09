@@ -133,18 +133,6 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
           <meshStandardMaterial color="#0a0a15" metalness={0.95} roughness={0.05} />
         </mesh>
         
-        {/* Inner glowing ring */}
-        <mesh position={[0, 0.6, 0]}>
-          <torusGeometry args={[1.5, 0.1, 16, 64]} />
-          <meshStandardMaterial 
-            color="#00ffff" 
-            emissive="#00ffff" 
-            emissiveIntensity={0.6} 
-            metalness={0.8} 
-            roughness={0.2} 
-          />
-        </mesh>
-
         {/* Outer ring */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
