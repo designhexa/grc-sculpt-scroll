@@ -312,7 +312,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
   });
 
   // Geser wheel jauh ke kanan agar 2/3 body ada di kanan layar
-  const wheelPivotX = 28; // sesuaikan kalau mau lebih/kurang ke kanan
+  const wheelPivotX = 40; // sesuaikan kalau mau lebih/kurang ke kanan
 
   return (
     <>
