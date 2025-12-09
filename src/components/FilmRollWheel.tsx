@@ -86,7 +86,6 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
           emissive={isSelected ? "#00ffff" : "#141414"} // gelap lembut
           emissiveIntensity={isSelected ? 0.3 : 0.1}
         />
-        </mesh>
 
         {/* Main textured card */}
         <mesh
