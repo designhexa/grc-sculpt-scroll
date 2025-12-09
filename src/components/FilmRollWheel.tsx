@@ -360,6 +360,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
   );
 }
 
+
 export default function FilmRollWheel() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
