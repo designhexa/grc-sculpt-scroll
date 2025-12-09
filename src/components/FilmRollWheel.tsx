@@ -359,7 +359,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#050508" metalness={0.5} roughness={0.8} />
+        <meshStandardMaterial color="#B0B0B0" metalness={0.2} roughness={0.9} />
       </mesh>
 
       <PerspectiveCamera makeDefault position={[-2, 0, 20]} fov={50} />
