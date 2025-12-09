@@ -307,44 +307,37 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
-  // Geser wheel ke kanan layar (fix)
-  const WHEEL_SCREEN_X = 4.2;   // perbesar → lebih ke kanan
-  const CAMERA_Z = 12;           // zoom lebih dekat
-  const CAMERA_X = 0;           // kamera tetap di tengah layar
+  const WHEEL_SCREEN_X = 4.2;
+  const CAMERA_Z = 12;
+  const CAMERA_X = 0;
   const CAMERA_Y = 0.5;
 
-  // rotation wheel
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
   useEffect(() => {
-    // Posisi kamera fix total
     camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
-
-    // Kamera MELIHAT ke pivot yang berada di kanan layar
     camera.lookAt(WHEEL_SCREEN_X, 0, 0);
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // hanya wheel yang berputar
-      wheelPivot.current.rotation.z += rotationSpeed;
+      // Rotasi wheel dari belakang ke depan
+      wheelPivot.current.rotation.x -= rotationSpeed; // dibalik tanda
+      // opsional tilt agar kartu sedikit miring
+      wheelPivot.current.rotation.z = 0.15;
     }
   });
 
   return (
-    <>
-      {/* geser semua objek wheel ke kanan layar */}
-      <group position={[WHEEL_SCREEN_X, 0, 0]}>
-        {/* pivot wheel → harus berada tepat di kanan */}
-        <group ref={wheelPivot}>
-          <RoboticWheel
-            selectedId={selectedId}
-            onSelect={onSelect}
-            rotation={0} // TIDAK DIPAKAI, wheelPivot yang diputar
-          />
-        </group>
+    <group position={[WHEEL_SCREEN_X, 0, 0]}>
+      <group ref={wheelPivot}>
+        <RoboticWheel
+          selectedId={selectedId}
+          onSelect={onSelect}
+          rotation={0} // tidak dipakai
+        />
       </group>
-    </>
+    </group>
   );
 }
 
