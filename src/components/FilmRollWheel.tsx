@@ -303,33 +303,26 @@ function LoadingFallback() {
   );
 }
 
-function Scene({ selectedId, onSelect, isAutoPlaying }) {
-  const wheelPivot = useRef<THREE.Group>(null);
-  const { camera } = useThree();
-  const CAMERA_POS = [0, 0.5, 12];
-  const rotationSpeed = isAutoPlaying ? 0.01 : 0;
+function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const texture = useTexture(data.texture);
 
-  useEffect(() => {
-    camera.position.set(...CAMERA_POS);
-    camera.lookAt(0, 0, 0);
-  }, []);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
 
-  useFrame(() => {
-    if (wheelPivot.current) {
-      wheelPivot.current.rotation.x -= rotationSpeed; // belakang → depan
-    }
-  });
+  // posisi dasar pada wheel
+  const y = Math.sin(angle) * radius;
+  const z = Math.cos(angle) * radius;
+
+  // OFFSET untuk mendorong belakang ke kanan
+  // misal: card terakhir (belakang) ada di z + 12
+  const offsetX = data.id === ornamentData.length ? 12 : 0;
+
+  const rotationX = -angle;
 
   return (
-    // Pivot digeser ke kanan agar belakang terdorong ke kanan
-    <group position={[12, 0, 0]}> 
-      <group ref={wheelPivot} position={[0, 0, 0]}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={0} // rotasi tetap
-        />
-      </group>
+    <group position={[offsetX, y, z]} rotation={[rotationX, 0, 0]}>
+      ...
     </group>
   );
 }
