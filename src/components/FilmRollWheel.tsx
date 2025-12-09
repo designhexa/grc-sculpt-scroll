@@ -310,30 +310,33 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
-  // Pivot berada sedikit ke kanan agar bagian belakang terdorong ke kanan
-  const PIVOT_X = 2.0;   // geser pivot ke kanan
-  const WHEEL_OFFSET_X = 0; // wheel relatif ke pivot tetap 0, depan tetap di tengah
+  // Pivot digeser ke kanan dari depan card (0)
+  const PIVOT_X = 2.5; // pivot ke kanan → bagian belakang terdorong
+  const WHEEL_FRONT_X = 0; // depan card tetap di tengah
 
   useEffect(() => {
     camera.position.set(...CAMERA_POS);
-    camera.lookAt(0, 0, 0); // depan tetap menghadap tengah
+    camera.lookAt(0, 0, 0); // tetap fokus ke depan card
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // rotasi dari belakang ke depan
+      // putar dari belakang ke depan
       wheelPivot.current.rotation.x -= rotationSpeed;
     }
   });
 
   return (
-    <group position={[PIVOT_X, 0, 0]}>      {/* pivot geser sedikit kanan */}
-      <group ref={wheelPivot} position={[WHEEL_OFFSET_X, 0, 0]}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={0} 
-        />
+    <group position={[0, 0, 0]}> {/* scene origin tetap */}
+      <group ref={wheelPivot} position={[PIVOT_X, 0, 0]}>
+        {/* geser wheel relatif ke pivot agar depan tetap di tengah */}
+        <group position={[-PIVOT_X, 0, 0]}>
+          <RoboticWheel
+            selectedId={selectedId}
+            onSelect={onSelect}
+            rotation={0} 
+          />
+        </group>
       </group>
     </group>
   );
