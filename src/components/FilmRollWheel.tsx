@@ -310,7 +310,8 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   });
 
   return (
-    <group position={[12, 0, 0]}> {/* pivot di kanan layar */}
+    // Pivot digeser ke kanan agar belakang terdorong ke kanan
+    <group position={[12, 0, 0]}> 
       <group ref={wheelPivot} position={[0, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
