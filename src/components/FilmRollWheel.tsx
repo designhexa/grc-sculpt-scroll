@@ -310,27 +310,28 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const CAMERA_POS = [0, 0.5, 12];
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
+  // Geser pivot sedikit ke kanan agar depan wheel di tengah layar
+  const WHEEL_OFFSET_X = 2.5; // geser ke kanan dari pivot
+
   useEffect(() => {
-    // Kamera fix, lihat ke tengah scene
     camera.position.set(...CAMERA_POS);
     camera.lookAt(0, 0, 0);
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // Putar wheel dari belakang ke depan
+      // putar wheel dari belakang ke depan
       wheelPivot.current.rotation.x -= rotationSpeed;
     }
   });
 
   return (
-    <group>
-      {/* Pivot di tengah scene, tidak geser ke kanan */}
+    <group position={[WHEEL_OFFSET_X, 0, 0]}>
       <group ref={wheelPivot} rotation={[Math.PI / 6, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
           onSelect={onSelect}
-          rotation={0} // rotation individual card di RoboticWheel
+          rotation={0}
         />
       </group>
     </group>
