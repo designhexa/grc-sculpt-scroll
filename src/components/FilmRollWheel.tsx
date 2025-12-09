@@ -288,11 +288,19 @@ function LoadingFallback() {
 function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const [rotation, setRotation] = useState(0);
 
+  const wheelPivotX = 16;
+
+  // Wheel rotation
   useFrame((_, delta) => {
-    if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
+    if (isAutoPlaying) {
+      setRotation((r) => r + delta * 0.12);
+    }
   });
 
-  const wheelPivotX = 16;
+  // FIX: Kamera stay dan selalu melihat wheel
+  useFrame(({ camera }) => {
+    camera.lookAt(wheelPivotX, 0, 0);
+  });
 
   return (
     <>
@@ -300,17 +308,18 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
       <fog attach="fog" args={["#080810", 30, 70]} />
 
       <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
-      <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
-
-      {/* FIX: kamera stay, tidak ikut berputar */}
-      {/** ⬇️ Tambahkan di sini */}
-      <useFrame
-        fn={({ camera }) => {
-          camera.lookAt(wheelPivotX, 0, 0);
-        }}
+      <directionalLight
+        position={[5, 10, 10]}
+        intensity={1.5}
+        color="#ffffff"
+      />
+      <pointLight
+        position={[-8, 5, 8]}
+        intensity={1}
+        color="#00ffff"
       />
 
+      {/* Wheel diposisikan di kanan */}
       <group position={[wheelPivotX, 0, 0]}>
         <RoboticWheel
           selectedId={selectedId}
@@ -319,13 +328,24 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
         />
       </group>
 
+      {/* Alas lantai */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#B0B0B0" metalness={0.5} roughness={0.8} />
+        <meshStandardMaterial
+          color="#B0B0B0"
+          metalness={0.5}
+          roughness={0.8}
+        />
       </mesh>
 
-      <PerspectiveCamera makeDefault position={[-2, 0, 20]} fov={50} />
+      {/* Kamera diam, tidak ikut berputar */}
+      <PerspectiveCamera
+        makeDefault
+        position={[-2, 0, 20]}
+        fov={50}
+      />
 
+      {/* OrbitControls tetap boleh dipakai untuk zoom */}
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
@@ -334,6 +354,7 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
         minDistance={15}
         maxDistance={35}
         target={[wheelPivotX, 0, 0]}
+        enableRotate={false}  // opsional: kalau mau kamera tidak bisa diputar
       />
 
       <Environment preset="night" background={false} />
