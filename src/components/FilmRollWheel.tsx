@@ -51,17 +51,15 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  // Mirror posisi supaya sisi kiri lebih dekat kamera
+  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
+  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
   const y = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
-
-  // Orientasi kartu menghadap pusat wheel
-  const rotationX = 0; 
-  const rotationY = -angle; 
-  const rotationZ = 0;
+  // Keep cards upright and facing camera
+  const rotationX = -angle;
 
   return (
-    <group position={[0, y, z]} rotation={[rotationX, rotationY, rotationZ]}>
+    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
       {/* Card frame */}
       <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
@@ -74,7 +72,7 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
         />
       </mesh>
 
-      {/* Main card */}
+      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
       <mesh
         ref={meshRef}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -84,16 +82,16 @@ function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
       >
         <boxGeometry args={[3.8, 2.6, 0.15]} />
         <meshStandardMaterial
-          map={texture}
-          metalness={0.1}
-          roughness={0.5}
-          emissive={isSelected ? "#00aaff" : "#000000"}
-          emissiveIntensity={isSelected ? 0.2 : 0}
-          side={THREE.DoubleSide}
-        />
+      map={texture}
+      metalness={0.1}
+      roughness={0.5}
+      emissive={isSelected ? "#00aaff" : "#000000"}
+      emissiveIntensity={isSelected ? 0.2 : 0}
+      side={THREE.DoubleSide}
+    />
       </mesh>
 
-      {/* Neon edge */}
+      {/* Neon edge glow - front side */}
       <mesh position={[0, 0, 0.09]}>
         <boxGeometry args={[3.9, 2.7, 0.01]} />
         <meshBasicMaterial
@@ -309,37 +307,44 @@ function Scene({ selectedId, onSelect, isAutoPlaying }) {
   const wheelPivot = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
-  const WHEEL_SCREEN_X = 4.2; // geser wheel ke kanan layar
-  const CAMERA_Z = 12;
-  const CAMERA_X = 0;
+  // Geser wheel ke kanan layar (fix)
+  const WHEEL_SCREEN_X = 4.2;   // perbesar → lebih ke kanan
+  const CAMERA_Z = 12;           // zoom lebih dekat
+  const CAMERA_X = 0;           // kamera tetap di tengah layar
   const CAMERA_Y = 0.5;
 
+  // rotation wheel
   const rotationSpeed = isAutoPlaying ? 0.01 : 0;
 
   useEffect(() => {
+    // Posisi kamera fix total
     camera.position.set(CAMERA_X, CAMERA_Y, CAMERA_Z);
+
+    // Kamera MELIHAT ke pivot yang berada di kanan layar
     camera.lookAt(WHEEL_SCREEN_X, 0, 0);
   }, []);
 
   useFrame(() => {
     if (wheelPivot.current) {
-      // Rotasi mengikuti plane kartu: sumbu X utama
-      wheelPivot.current.rotation.x += rotationSpeed; 
-      // Opsional: sedikit tilt agar sisi kiri lebih dekat
-      wheelPivot.current.rotation.z = 0.15; 
+      // hanya wheel yang berputar
+      wheelPivot.current.rotation.z += rotationSpeed;
     }
   });
 
   return (
-    <group position={[WHEEL_SCREEN_X, 0, 0]}>
-      <group ref={wheelPivot}>
-        <RoboticWheel
-          selectedId={selectedId}
-          onSelect={onSelect}
-          rotation={0} // tidak dipakai
-        />
+    <>
+      {/* geser semua objek wheel ke kanan layar */}
+      <group position={[WHEEL_SCREEN_X, 0, 0]}>
+        {/* pivot wheel → harus berada tepat di kanan */}
+        <group ref={wheelPivot}>
+          <RoboticWheel
+            selectedId={selectedId}
+            onSelect={onSelect}
+            rotation={0} // TIDAK DIPAKAI, wheelPivot yang diputar
+          />
+        </group>
       </group>
-    </group>
+    </>
   );
 }
 
@@ -410,16 +415,21 @@ export default function FilmRollWheel() {
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
-          <Canvas
-            style={{ background: "#87CEEB" }} // sky blue
-          >
+          <Canvas>
             {/* Kamera */}
             <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={50} />
 
-            {/* Cahaya */}
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[10, 10, 5]} intensity={1.2} />
-
+            {/* Cahaya global */}
+            <ambientLight intensity={0.8} />   {/* default 0.5, dinaikkan biar terang */}
+            
+            {/* Cahaya arah */}
+            <directionalLight 
+              position={[10, 10, 5]} 
+              intensity={1.2} 
+              castShadow 
+            />
+            
+            {/* Scene */}
             <Scene selectedId={selectedId} onSelect={handleSelect} isAutoPlaying={isAutoPlaying} />
           </Canvas>
         </Suspense>
