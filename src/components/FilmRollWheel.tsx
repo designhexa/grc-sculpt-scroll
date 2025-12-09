@@ -19,7 +19,7 @@ interface OrnamentData {
   };
 }
 
-const WHEEL_RADIUS = 7;
+const WHEEL_RADIUS = 8;
 
 const ornamentData: OrnamentData[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -42,27 +42,26 @@ interface CardProps {
   radius: number;
   isSelected: boolean;
   onClick: () => void;
-  wheelRotation: number;
 }
 
-function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardProps) {
+function Card({ data, angle, radius, isSelected, onClick }: CardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(data.texture);
 
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
 
-  const totalAngle = angle + wheelRotation;
-  // Wheel rotates around Y axis at right edge, cards positioned on left arc
-  const x = Math.cos(totalAngle) * radius;
-  const z = Math.sin(totalAngle) * radius;
-  // Texture faces outward (away from center)
-  const rotationY = totalAngle + Math.PI / 2;
+  // Position on the wheel circle - wheel rotates around X axis (horizontal axis)
+  // Cards positioned in Y-Z plane, facing outward (-Z direction toward camera)
+  const y = Math.sin(angle) * radius;
+  const z = Math.cos(angle) * radius;
+  // Keep cards upright and facing camera
+  const rotationX = -angle;
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
+    <group position={[0, y, z]} rotation={[rotationX, 0, 0]}>
       {/* Card frame */}
-      <mesh position={[0, 0, -0.1]}>
+      <mesh position={[0, 0, 0.1]}>
         <boxGeometry args={[4, 2.8, 0.05]} />
         <meshStandardMaterial
           color={isSelected ? "#00ffff" : "#1a1a2e"}
@@ -73,7 +72,7 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
         />
       </mesh>
 
-      {/* Main card - landscape */}
+      {/* Main card - landscape, texture on front (facing -Z, toward camera) */}
       <mesh
         ref={meshRef}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -91,8 +90,8 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
         />
       </mesh>
 
-      {/* Neon edge glow */}
-      <mesh position={[0, 0, 0.08]}>
+      {/* Neon edge glow - front side */}
+      <mesh position={[0, 0, 0.09]}>
         <boxGeometry args={[3.9, 2.7, 0.01]} />
         <meshBasicMaterial
           color={isSelected ? "#00ffff" : "#334455"}
@@ -108,8 +107,8 @@ function Card({ data, angle, radius, isSelected, onClick, wheelRotation }: CardP
         distanceFactor={10}
         style={{ pointerEvents: "none" }}
       >
-        <div className="bg-background/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-accent/50 whitespace-nowrap shadow-lg">
-          <span className="text-xs font-mono font-bold text-accent uppercase tracking-widest">
+        <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-cyan-400/50 whitespace-nowrap shadow-lg">
+          <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
             ORN. {data.id}
           </span>
         </div>
@@ -124,90 +123,90 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
   const angleStep = (Math.PI * 2) / cardCount;
 
   return (
-    <group>
-      {/* Central hub - robotic style */}
-      <group rotation={[0, 0, rotation]}>
+    <group rotation={[rotation, 0, 0]}>
+      {/* Central hub - robotic style, rotated to face camera */}
+      <group rotation={[Math.PI / 2, 0, 0]}>
         {/* Main cylinder core */}
         <mesh>
-          <cylinderGeometry args={[1.5, 1.5, 0.8, 32]} />
+          <cylinderGeometry args={[2, 2, 1, 32]} />
           <meshStandardMaterial color="#0a0a15" metalness={0.95} roughness={0.05} />
         </mesh>
         
         {/* Inner glowing ring */}
-        <mesh>
-          <torusGeometry args={[1.2, 0.08, 16, 64]} />
+        <mesh position={[0, 0.6, 0]}>
+          <torusGeometry args={[1.5, 0.1, 16, 64]} />
           <meshStandardMaterial 
             color="#00ffff" 
             emissive="#00ffff" 
-            emissiveIntensity={0.5} 
+            emissiveIntensity={0.6} 
             metalness={0.8} 
             roughness={0.2} 
           />
         </mesh>
 
         {/* Outer ring */}
-        <mesh>
-          <torusGeometry args={[1.8, 0.1, 16, 64]} />
+        <mesh position={[0, 0.6, 0]}>
+          <torusGeometry args={[2.2, 0.12, 16, 64]} />
           <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
         </mesh>
 
         {/* Hexagonal bolts */}
-        {Array.from({ length: 6 }, (_, i) => {
-          const boltAngle = (i / 6) * Math.PI * 2;
+        {Array.from({ length: 8 }, (_, i) => {
+          const boltAngle = (i / 8) * Math.PI * 2;
           return (
-            <mesh key={i} position={[Math.cos(boltAngle) * 1.5, 0.45, Math.sin(boltAngle) * 1.5]}>
-              <cylinderGeometry args={[0.12, 0.12, 0.15, 6]} />
-              <meshStandardMaterial color="#00aaff" metalness={0.9} roughness={0.1} emissive="#00aaff" emissiveIntensity={0.3} />
+            <mesh key={i} position={[Math.cos(boltAngle) * 1.8, 0.55, Math.sin(boltAngle) * 1.8]}>
+              <cylinderGeometry args={[0.1, 0.1, 0.2, 6]} />
+              <meshStandardMaterial color="#00aaff" metalness={0.9} roughness={0.1} emissive="#00aaff" emissiveIntensity={0.4} />
             </mesh>
           );
         })}
       </group>
 
-      {/* Outer structural ring - modern tech */}
-      <mesh rotation={[Math.PI / 2, 0, rotation]}>
-        <torusGeometry args={[radius + 0.3, 0.15, 8, 64]} />
+      {/* Outer structural ring - vertical plane facing camera */}
+      <mesh>
+        <torusGeometry args={[radius + 0.4, 0.2, 8, 64]} />
         <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
       </mesh>
 
       {/* Inner structural ring */}
-      <mesh rotation={[Math.PI / 2, 0, rotation]}>
-        <torusGeometry args={[radius - 0.3, 0.1, 8, 64]} />
+      <mesh>
+        <torusGeometry args={[radius - 0.4, 0.15, 8, 64]} />
         <meshStandardMaterial color="#0f0f1a" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Connecting arms - robotic style */}
+      {/* Connecting arms - from hub to cards */}
       {Array.from({ length: cardCount }, (_, i) => {
-        const armAngle = (i / cardCount) * Math.PI * 2 + rotation;
-        const innerR = 2;
-        const outerR = radius - 0.5;
+        const armAngle = (i / cardCount) * Math.PI * 2;
+        const innerR = 2.5;
+        const outerR = radius - 0.6;
         
-        const innerX = Math.cos(armAngle) * innerR;
-        const innerZ = Math.sin(armAngle) * innerR;
-        const outerX = Math.cos(armAngle) * outerR;
-        const outerZ = Math.sin(armAngle) * outerR;
+        const innerY = Math.sin(armAngle) * innerR;
+        const innerZ = Math.cos(armAngle) * innerR;
+        const outerY = Math.sin(armAngle) * outerR;
+        const outerZ = Math.cos(armAngle) * outerR;
         
-        const midX = (innerX + outerX) / 2;
+        const midY = (innerY + outerY) / 2;
         const midZ = (innerZ + outerZ) / 2;
         const armLength = outerR - innerR;
 
         return (
           <group key={i}>
             {/* Main arm */}
-            <mesh position={[midX, 0, midZ]} rotation={[0, -armAngle + Math.PI / 2, 0]}>
-              <boxGeometry args={[armLength, 0.12, 0.08]} />
+            <mesh position={[0, midY, midZ]} rotation={[-armAngle, 0, 0]}>
+              <boxGeometry args={[0.1, armLength, 0.08]} />
               <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
             </mesh>
             
             {/* Joint at card end */}
-            <mesh position={[outerX, 0, outerZ]}>
-              <sphereGeometry args={[0.15, 16, 16]} />
-              <meshStandardMaterial color="#00aaff" metalness={0.8} roughness={0.2} emissive="#00aaff" emissiveIntensity={0.2} />
+            <mesh position={[0, outerY, outerZ]}>
+              <sphereGeometry args={[0.18, 16, 16]} />
+              <meshStandardMaterial color="#00aaff" metalness={0.8} roughness={0.2} emissive="#00aaff" emissiveIntensity={0.3} />
             </mesh>
           </group>
         );
       })}
 
-      {/* Cards */}
+      {/* Cards - positioned on the wheel */}
       {ornamentData.map((data, index) => (
         <Card
           key={data.id}
@@ -216,7 +215,6 @@ function RoboticWheel({ selectedId, onSelect, rotation }: { selectedId: number |
           radius={radius}
           isSelected={selectedId === data.id}
           onClick={() => onSelect(selectedId === data.id ? null : data.id)}
-          wheelRotation={rotation}
         />
       ))}
     </group>
@@ -232,39 +230,39 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
   if (!data) return null;
 
   return (
-    <div className="absolute left-6 md:left-12 top-24 bottom-8 w-[380px] md:w-[440px] z-30 animate-fade-in">
-      {/* Glassmorphism container */}
-      <div className="h-full flex flex-col bg-background/20 backdrop-blur-2xl border border-accent/20 rounded-3xl shadow-[0_8px_64px_rgba(0,255,255,0.1)] overflow-hidden">
+    <div className="absolute left-6 md:left-12 top-24 bottom-8 w-[380px] md:w-[480px] z-30 animate-fade-in">
+      {/* Glassmorphism container - more transparent */}
+      <div className="h-full flex flex-col bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_64px_rgba(0,255,255,0.08)] overflow-hidden">
         
         {/* Header */}
-        <div className="p-6 border-b border-accent/10">
+        <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-3 h-3 bg-accent rounded-full animate-pulse shadow-[0_0_20px_hsl(var(--accent))]" />
-              <h2 className="text-2xl font-light text-foreground tracking-[0.3em] uppercase">
+              <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(0,255,255,0.6)]" />
+              <h2 className="text-2xl font-light text-white tracking-[0.3em] uppercase">
                 {data.name}
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-accent/10 hover:bg-accent/20 border border-accent/30 flex items-center justify-center transition-all hover:scale-110"
+              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 flex items-center justify-center transition-all hover:scale-110"
             >
-              <span className="text-accent text-xl font-light">×</span>
+              <span className="text-white text-xl font-light">×</span>
             </button>
           </div>
         </div>
 
         {/* Image preview */}
         <div className="p-6">
-          <div className="aspect-[16/10] rounded-2xl overflow-hidden border border-accent/20 shadow-lg relative">
+          <div className="aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative">
             <img
               src={data.texture}
               alt={data.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-4">
-              <span className="px-3 py-1 bg-accent/20 backdrop-blur-md rounded-full text-xs font-mono text-accent uppercase tracking-wider border border-accent/30">
+              <span className="px-3 py-1 bg-cyan-500/20 backdrop-blur-md rounded-full text-xs font-mono text-cyan-300 uppercase tracking-wider border border-cyan-400/30">
                 {data.specs.category}
               </span>
             </div>
@@ -273,26 +271,26 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
 
         {/* Description */}
         <div className="px-6 pb-4">
-          <p className="text-sm text-muted-foreground leading-relaxed font-light">
+          <p className="text-sm text-gray-300 leading-relaxed font-light">
             {data.description}
           </p>
         </div>
 
         {/* Specifications grid */}
-        <div className="flex-1 px-6 pb-6 overflow-auto">
-          <h3 className="text-xs font-mono font-bold text-accent uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
-            <div className="w-8 h-[1px] bg-accent/50" />
+        <div className="flex-1 px-6 pb-6 overflow-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <h3 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+            <div className="w-8 h-[1px] bg-cyan-400/50" />
             Spesifikasi Teknis
-            <div className="flex-1 h-[1px] bg-accent/20" />
+            <div className="flex-1 h-[1px] bg-white/10" />
           </h3>
           
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(data.specs).map(([key, value]) => (
               <div
                 key={key}
-                className="p-4 rounded-xl bg-background/30 border border-accent/10 hover:border-accent/30 transition-colors"
+                className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-400/30 transition-colors"
               >
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider block mb-1">
+                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
                   {key === "material" ? "Material" 
                     : key === "dimensions" ? "Dimensi"
                     : key === "weight" ? "Berat"
@@ -300,7 +298,7 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
                     : key === "category" ? "Kategori"
                     : "Garansi"}
                 </span>
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-white">
                   {value}
                 </span>
               </div>
@@ -309,8 +307,8 @@ function DetailPanel({ data, onClose }: DetailPanelProps) {
         </div>
 
         {/* Footer actions */}
-        <div className="p-6 border-t border-accent/10">
-          <button className="w-full py-3 rounded-xl bg-accent/20 hover:bg-accent/30 border border-accent/30 text-accent font-mono text-sm uppercase tracking-wider transition-all hover:shadow-[0_0_30px_rgba(0,255,255,0.2)]">
+        <div className="p-6 border-t border-white/10">
+          <button className="w-full py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 font-mono text-sm uppercase tracking-wider transition-all hover:shadow-[0_0_30px_rgba(0,255,255,0.2)]">
             Hubungi Kami
           </button>
         </div>
@@ -337,42 +335,38 @@ function Scene({ selectedId, onSelect, isAutoPlaying }: { selectedId: number | n
     if (isAutoPlaying) setRotation((r) => r + delta * 0.12);
   });
 
+  // Wheel pivot at right edge of screen
+  const wheelPivotX = 8;
+
   return (
     <>
       <color attach="background" args={["#080810"]} />
-      <fog attach="fog" args={["#080810", 15, 40]} />
+      <fog attach="fog" args={["#080810", 30, 70]} />
 
-      {/* Lighting - tech/futuristic */}
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[10, 10, 5]} intensity={0.8} color="#ffffff" />
-      <pointLight position={[-5, 5, 5]} intensity={0.5} color="#00ffff" />
-      <pointLight position={[5, -5, -5]} intensity={0.3} color="#0088ff" />
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[5, 10, 10]} intensity={1.5} color="#ffffff" />
+      <pointLight position={[-8, 5, 8]} intensity={1} color="#00ffff" />
 
-      {/* Wheel positioned at right side, pivot on right edge */}
-      <group position={[WHEEL_RADIUS + 4, 0, 0]}>
+      {/* Wheel positioned at right, only left half visible */}
+      <group position={[wheelPivotX, 0, 0]}>
         <RoboticWheel selectedId={selectedId} onSelect={onSelect} rotation={rotation} />
       </group>
 
-      {/* Ground with grid */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10, 0]}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#050508" metalness={0.5} roughness={0.8} />
       </mesh>
 
-      {/* Camera looking at the wheel from left side */}
-      <PerspectiveCamera makeDefault position={[-2, 2, 12]} fov={50} />
+      <PerspectiveCamera makeDefault position={[-2, 0, 20]} fov={50} />
 
       <OrbitControls
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
-        minAzimuthAngle={-0.5}
-        maxAzimuthAngle={0.5}
-        minPolarAngle={Math.PI / 3}
-        maxPolarAngle={Math.PI / 1.8}
-        minDistance={10}
-        maxDistance={25}
-        target={[6, 0, 0]}
+        enableZoom={true}
+        minDistance={15}
+        maxDistance={35}
+        target={[wheelPivotX, 0, 0]}
       />
 
       <Environment preset="night" background={false} />
