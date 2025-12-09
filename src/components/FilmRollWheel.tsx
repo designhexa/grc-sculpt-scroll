@@ -416,6 +416,7 @@ export default function FilmRollWheel() {
       <div className="absolute inset-0 z-10">
         <Suspense fallback={<LoadingFallback />}>
           <Canvas>
+            <PerspectiveCamera makeDefault position={[0, 2, 12]} fov={45} />
             <Scene
               selectedId={selectedId}
               onSelect={handleSelect}
